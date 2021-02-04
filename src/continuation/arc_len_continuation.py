@@ -22,7 +22,7 @@ class PseudoArcLenContinuation(Continuation):
         dual_objective,
         lagrange_multiplier,
         output_file,
-        hparams
+        hparams,
     ):
         self._state_wrap = StateVariable(state, counter)
         self._bparam_wrap = StateVariable(
@@ -32,9 +32,9 @@ class PseudoArcLenContinuation(Continuation):
         self.dual_objective = dual_objective
         # self.inputs = inputs
         # self.outputs = outputs
-        self.opt = GDOptimizer(learning_rate=hparams['natural_lr'])
-        self.ascent_opt = GAOptimizer(learning_rate=hparams['ascent_lr'])
-        self.continuation_steps = hparams['continuation_steps']
+        self.opt = GDOptimizer(learning_rate=hparams["natural_lr"])
+        self.ascent_opt = GAOptimizer(learning_rate=hparams["ascent_lr"])
+        self.continuation_steps = hparams["continuation_steps"]
         self._prev_state = state_0
         self._prev_bparam = bparam_0
         self._lagrange_multiplier = lagrange_multiplier
@@ -42,8 +42,8 @@ class PseudoArcLenContinuation(Continuation):
         self.state_tree_def = None
         self.bparam_tree_def = None
         self.hparams = hparams
-        self._delta_s = hparams['delta_s']
-        self._omega = hparams['omega']
+        self._delta_s = hparams["delta_s"]
+        self._omega = hparams["omega"]
         self.output_file = output_file
 
     def run(self):
@@ -86,10 +86,9 @@ class PseudoArcLenContinuation(Continuation):
                 lagrange_multiplier=self._lagrange_multiplier,
                 concat_states=concat_states,
                 delta_s=self._delta_s,
-                ascent_opt=self.ascent_opt
+                ascent_opt=self.ascent_opt,
             )
             state, bparam = corrector.correction_step()
 
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
-

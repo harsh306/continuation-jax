@@ -5,6 +5,7 @@ from typing import Tuple
 from examples.abstract_problem import AbstractProblem
 from jax.tree_util import *
 from jax.experimental.optimizers import l2_norm
+
 config.update("jax_debug_nans", True)
 
 
@@ -17,7 +18,10 @@ class PitchForkProblem(AbstractProblem):
     def objective(params: list, bparam: list) -> float:
         result = 0.0
         for w1 in params:
-            result += np.mean(np.divide(np.power(w1, 4), 4.0) + bparam[0] * np.divide(np.power(w1, 2), 2.0))
+            result += np.mean(
+                np.divide(np.power(w1, 4), 4.0)
+                + bparam[0] * np.divide(np.power(w1, 2), 2.0)
+            )
         return result
 
     @staticmethod
@@ -30,13 +34,9 @@ class PitchForkProblem(AbstractProblem):
             [np.array([-1.734])],
             [np.array([-1.732])],
         ]
-        bparams = [
-            [np.array([-3.0])],
-            [np.array([-2.9])]
-        ]
+        bparams = [[np.array([-3.0])], [np.array([-2.9])]]
 
         return states, bparams
-
 
     @staticmethod
     def initial_value() -> Tuple:
@@ -105,12 +105,9 @@ class VectorPitchFork(AbstractProblem):
             [(np.array([-1.732]), np.array([-1.732]))],
         ]
 
-        bparams = [
-            [np.array([-3.0])], [np.array([-2.9])]
-        ]
+        bparams = [[np.array([-3.0])], [np.array([-2.9])]]
         return states, bparams
 
 
 if __name__ == "__main__":
     s = PitchForkProblem()
-

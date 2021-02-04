@@ -18,7 +18,7 @@ class PerturbedCorrecter(ConstrainedCorrector):
         concat_states,
         delta_s,
         ascent_opt,
-        key_state
+        key_state,
     ):
         super().__init__(
             optimizer,
@@ -33,8 +33,12 @@ class PerturbedCorrecter(ConstrainedCorrector):
         self.key = random.PRNGKey(key_state)
 
     def _perform_perturb(self):
-        self._state = tree_map(lambda a: a + random.normal(self.key, a.shape), self._state)
-        self._bparam = tree_map(lambda a: a + random.normal(self.key, a.shape), self._bparam)
+        self._state = tree_map(
+            lambda a: a + random.normal(self.key, a.shape), self._state
+        )
+        self._bparam = tree_map(
+            lambda a: a + random.normal(self.key, a.shape), self._bparam
+        )
         state_stack = []  # TODO: reove stack list
         state_stack.extend(self._state)
         state_stack.extend(self._bparam)
@@ -46,8 +50,12 @@ class PerturbedCorrecter(ConstrainedCorrector):
         dot = pytree_dot(self._parc_vec, self._state_secant_vector)
         if not np.isclose(dot, 0.0, rtol=0.15):
             print("Reverting perturb")
-            self._state = tree_map(lambda a: a - random.normal(self.key, a.shape), self._state)
-            self._bparam = tree_map(lambda a: a - random.normal(self.key, a.shape), self._bparam)
+            self._state = tree_map(
+                lambda a: a - random.normal(self.key, a.shape), self._state
+            )
+            self._bparam = tree_map(
+                lambda a: a - random.normal(self.key, a.shape), self._bparam
+            )
 
     def correction_step(self) -> Tuple:
         self._perform_perturb()

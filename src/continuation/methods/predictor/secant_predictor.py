@@ -29,9 +29,13 @@ class SecantPredictor(Predictor):
         """
         self.secantvar_state = pytree_sub(self._state, self._prev_state)
         self.secantvar_bparam = pytree_sub(self._bparam, self._prev_bparam)
-        states_norm = l2_norm(self.secantvar_state) + l2_norm(self.secantvar_bparam) + 1e-4
-        self.secantvar_state = tree_map(lambda a: a/states_norm, self.secantvar_state)
-        self.secantvar_bparam = tree_map(lambda a: a/states_norm, self.secantvar_bparam)
+        states_norm = (
+            l2_norm(self.secantvar_state) + l2_norm(self.secantvar_bparam) + 1e-4
+        )
+        self.secantvar_state = tree_map(lambda a: a / states_norm, self.secantvar_state)
+        self.secantvar_bparam = tree_map(
+            lambda a: a / states_norm, self.secantvar_bparam
+        )
         del states_norm
 
         # norm = 1e-5
@@ -55,8 +59,12 @@ class SecantPredictor(Predictor):
     def prediction_step(self) -> Tuple:
         self.assign_states()
         self._compute_secant()
-        self._state = tree_multimap(lambda a, b: a+self.omega*b, self._state, self.secantvar_state)
-        self._bparam = tree_multimap(lambda a, b: a + self.omega * b, self._bparam, self.secantvar_bparam)
+        self._state = tree_multimap(
+            lambda a, b: a + self.omega * b, self._state, self.secantvar_state
+        )
+        self._bparam = tree_multimap(
+            lambda a, b: a + self.omega * b, self._bparam, self.secantvar_bparam
+        )
 
         # self._state = [z + self.omega * k for (z, k) in zip(self._state, self.secantvar_state)]
         # self._bparam = [z + self.omega * k for (z, k) in zip(self._bparam, self.secantvar_bparam)]

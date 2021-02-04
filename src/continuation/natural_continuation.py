@@ -15,30 +15,31 @@ class NaturalContinuation(Continuation):
         self.objective = objective
         self.inputs = 0.0
         self.outputs = 0.0
-        self.opt = OptimizerCreator(opt_string=hparams['meta']['optimizer'],
-                                    learning_rate=hparams['natural_lr']).get_optimizer()
-        self.continuation_steps = hparams['continuation_steps']
+        self.opt = OptimizerCreator(
+            opt_string=hparams["meta"]["optimizer"], learning_rate=hparams["natural_lr"]
+        ).get_optimizer()
+        self.continuation_steps = hparams["continuation_steps"]
         self.sw = StateWriter(output_file)
-        self._delta_s = hparams['delta_s']
+        self._delta_s = hparams["delta_s"]
 
     def run(self):
         """Example function with types documented in the docstring.
 
-            `PEP 484`_ type annotations are supported. If attribute, parameter, and
-            return types are annotated according to `PEP 484`_, they do not need to be
-            included in the docstring:
+        `PEP 484`_ type annotations are supported. If attribute, parameter, and
+        return types are annotated according to `PEP 484`_, they do not need to be
+        included in the docstring:
 
-            Args:
-                param1 (int): The first parameter.
-                param2 (str): The second parameter.
+        Args:
+            param1 (int): The first parameter.
+            param2 (str): The second parameter.
 
-            Returns:
-                bool: The return value. True for success, False otherwise.
+        Returns:
+            bool: The return value. True for success, False otherwise.
 
-            .. _PEP 484:
-                https://www.python.org/dev/peps/pep-0484/
+        .. _PEP 484:
+            https://www.python.org/dev/peps/pep-0484/
 
-            """
+        """
         for i in range(self.continuation_steps):
 
             self._state_wrap.counter = i
@@ -48,7 +49,9 @@ class NaturalContinuation(Continuation):
             )
 
             concat_states = [self._state_wrap.state, self._bparam_wrap.state]
-            predictor = NaturalPredictor(concat_states=concat_states, delta_s=self._delta_s)
+            predictor = NaturalPredictor(
+                concat_states=concat_states, delta_s=self._delta_s
+            )
             state, bparam = predictor.prediction_step()
 
             concat_states = [state, bparam]

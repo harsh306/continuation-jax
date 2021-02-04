@@ -6,23 +6,27 @@ from jax.experimental.optimizers import optimizer, make_schedule
 
 @optimizer
 def gradient_ascent(step_size):
-  """Construct optimizer triple for stochastic gradient descent.
+    """Construct optimizer triple for stochastic gradient descent.
 
-  Args:
-    step_size: positive scalar, or a callable representing a step size schedule
-      that maps the iteration index to positive scalar.
+    Args:
+      step_size: positive scalar, or a callable representing a step size schedule
+        that maps the iteration index to positive scalar.
 
-  Returns:
-    An (init_fun, update_fun, get_params) triple.
-  """
-  step_size = make_schedule(step_size)
-  def init(x0):
-    return x0
-  def update(i, g, x):
-    return x + step_size(i) * g
-  def get_params(x):
-    return x
-  return init, update, get_params
+    Returns:
+      An (init_fun, update_fun, get_params) triple.
+    """
+    step_size = make_schedule(step_size)
+
+    def init(x0):
+        return x0
+
+    def update(i, g, x):
+        return x + step_size(i) * g
+
+    def get_params(x):
+        return x
+
+    return init, update, get_params
 
 
 class Optimizer(ABC):
@@ -39,7 +43,7 @@ class GDOptimizer(Optimizer):
         self.opt_init, self.opt_update, self.get_params = sgd(step_size=self.lr)
 
     def update_params(
-            self, params: list, grad_params: list, step_index: int = 0
+        self, params: list, grad_params: list, step_index: int = 0
     ) -> list:
         opt_state = self.opt_init(params)
         params = self.get_params(self.opt_update(step_index, grad_params, opt_state))
@@ -55,14 +59,16 @@ class _GDOptimizer(Optimizer):
     ) -> list:
         print(params, grad_params)
         for (w, dw) in zip(params, grad_params):
-            print(w,dw)
+            print(w, dw)
         return [w - self.lr * dw for (w, dw) in zip(params, grad_params)]
 
 
 class GAOptimizer(Optimizer):
     def __init__(self, learning_rate):
         self.lr = learning_rate
-        self.opt_init, self.opt_update, self.get_params = gradient_ascent(step_size=self.lr)
+        self.opt_init, self.opt_update, self.get_params = gradient_ascent(
+            step_size=self.lr
+        )
 
     def update_params(
         self, params: list, grad_params: list, step_index: int = 0
@@ -100,7 +106,3 @@ class OptimizerCreator:
         else:
             print(f"Optimizer not implemented: {self._opt_string}")
             raise NotImplementedError
-
-
-
-

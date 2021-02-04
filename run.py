@@ -12,8 +12,8 @@ if __name__ == "__main__":
 
     problem = VectorPitchFork()
     problem = ProblemWraper(problem)
-    if hparams['n_perturbs'] > 1:
-        for perturb in range(hparams['n_perturbs']):
+    if hparams["n_perturbs"] > 1:
+        for perturb in range(hparams["n_perturbs"]):
             print(f"Running perturb {perturb}")
             continuation = ContinuationCreator(
                 problem=problem, hparams=hparams, key=perturb

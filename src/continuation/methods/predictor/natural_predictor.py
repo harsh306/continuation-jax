@@ -14,5 +14,5 @@ class NaturalPredictor(Predictor):
 
     def prediction_step(self) -> Tuple:
         self._assign_states()
-        self._bparam = tree_map(lambda a: a+self.delta_s, self._bparam)
+        self._bparam = tree_map(lambda a: a + self.delta_s, self._bparam)
         return self._state, self._bparam

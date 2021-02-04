@@ -12,7 +12,7 @@ class ConstrainedCorrector(Corrector):
         lagrange_multiplier,
         concat_states,
         delta_s,
-        ascent_opt
+        ascent_opt,
     ):
         self.concat_states = concat_states
         self._state = None
@@ -49,7 +49,7 @@ class ConstrainedCorrector(Corrector):
             self._lagrange_multiplier,
             self._state_secant_c2,
             self._state_secant_vector,
-            self.delta_s
+            self.delta_s,
         )
         return state_grads, bparam_grads
 

@@ -23,7 +23,7 @@ class ContinuationCreator:
                 counter=0,
                 objective=self.problem.objective,
                 output_file=self.hparams["meta"]["output_dir"] + "/version.json",
-                hparams=self.hparams
+                hparams=self.hparams,
             )
 
         elif self.hparams["meta"]["method"] == "parc":
@@ -40,7 +40,7 @@ class ContinuationCreator:
                 dual_objective=self.problem.dual_objective,
                 lagrange_multiplier=self.hparams["lagrange_init"],
                 output_file=self.hparams["meta"]["output_dir"] + "/version.json",
-                hparams=self.hparams
+                hparams=self.hparams,
             )
         elif self.hparams["meta"]["method"] == "parc-perturb":
             states, bparams = self.problem.initial_values()
@@ -57,7 +57,7 @@ class ContinuationCreator:
                 lagrange_multiplier=self.hparams["lagrange_init"],
                 output_file=self.hparams["meta"]["output_dir"],
                 hparams=self.hparams,
-                key_state=self.key
+                key_state=self.key,
             )
         else:
             raise NotImplementedError

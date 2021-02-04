@@ -45,9 +45,7 @@ class SimpleNeuralNetwork(AbstractProblem):
         return mse + reg
 
     def initial_value(self) -> Tuple:
-        bparam = [
-            np.array([-0.50], dtype=np.float64)
-            ]
+        bparam = [np.array([-0.50], dtype=np.float64)]
         layer_sizes = [4, 1]
         state = self.init_network_params(layer_sizes, random.PRNGKey(0))
         return state, bparam
@@ -62,9 +60,7 @@ class SimpleNeuralNetwork(AbstractProblem):
     @staticmethod
     def random_layer_params(m, n, key, scale=1e-1):
         w_key, b_key = random.split(key)
-        return scale * random.normal(w_key, (n, m)), scale * random.normal(
-            b_key, (n,)
-        )
+        return scale * random.normal(w_key, (n, m)), scale * random.normal(b_key, (n,))
 
     def initial_values(self) -> Tuple:
         state, bparam = self.initial_value()
@@ -81,6 +77,3 @@ class SimpleNeuralNetwork(AbstractProblem):
         del bparam_1, bparam_0
 
         return states, bparams
-
-
-

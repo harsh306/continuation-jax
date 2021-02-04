@@ -23,7 +23,7 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
         lagrange_multiplier,
         output_file,
         hparams,
-        key_state
+        key_state,
     ):
         super().__init__(
             state,
@@ -35,7 +35,7 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
             dual_objective,
             lagrange_multiplier,
             output_file,
-            hparams
+            hparams,
         )
         self.key_state = key_state
 
@@ -79,7 +79,7 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 concat_states=concat_states,
                 delta_s=self._delta_s,
                 ascent_opt=self.ascent_opt,
-                key_state=self.key_state
+                key_state=self.key_state,
             )
             state, bparam = corrector.correction_step()
 
