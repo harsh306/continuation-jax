@@ -39,6 +39,9 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.doctest",
     "sphinx.ext.ifconfig",
+    'sphinx.ext.mathjax',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -47,7 +50,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -63,5 +66,7 @@ html_static_path = ["_static"]
 source_suffix = ".rst"
 master_doc = "index"
 autosummary_generate = True
-html_theme = 'sphinx_rtd_theme'
-html_style = 'css/theme.css'
+html_theme = 'default'
+RTD_NEW_THEME = True
+#html_style = 'css/theme.css'
+#nbsphinx_codecell_lexer = 'ipython3'
