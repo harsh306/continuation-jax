@@ -9,6 +9,8 @@ from jax import numpy as np
 
 
 class PerturbedCorrecter(ConstrainedCorrector):
+    """Minimize the objective using gradient based method along with some constraint and noise"""
+
     def __init__(
         self,
         optimizer,
@@ -33,6 +35,7 @@ class PerturbedCorrecter(ConstrainedCorrector):
         self.key = random.PRNGKey(key_state)
 
     def _perform_perturb(self):
+        """Add noise to a PyTree"""
         self._state = tree_map(
             lambda a: a + random.normal(self.key, a.shape), self._state
         )
@@ -44,9 +47,8 @@ class PerturbedCorrecter(ConstrainedCorrector):
         state_stack.extend(self._bparam)
         self._parc_vec = pytree_sub(state_stack, self._state_secant_c2)
 
-    def _evaluate_perturb(
-        self,
-    ) -> Tuple:  # TODO: two options - evaluate algebraic way or solve for constraint only
+    def _evaluate_perturb(self):
+        """Evaluate weather the perturbed vector is orthogonal to secant vector"""
         dot = pytree_dot(self._parc_vec, self._state_secant_vector)
         if not np.isclose(dot, 0.0, rtol=0.15):
             print("Reverting perturb")
@@ -58,6 +60,11 @@ class PerturbedCorrecter(ConstrainedCorrector):
             )
 
     def correction_step(self) -> Tuple:
+        """Given the current state optimize to the correct state.
+
+        Returns:
+          (state: problem parameters, bparam: continuation parameter) Tuple
+        """
         self._perform_perturb()
         self._evaluate_perturb()
 

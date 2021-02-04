@@ -11,6 +11,10 @@ import copy
 
 class PseudoArcLenContinuation(Continuation):
     # May be refactor to only one continuation TODO
+    """Pseudo Arc-length Continuation strategy.
+
+    Composed of secant predictor and constrained corrector"""
+
     def __init__(
         self,
         state,
@@ -47,6 +51,11 @@ class PseudoArcLenContinuation(Continuation):
         self.output_file = output_file
 
     def run(self):
+        """Runs the continuation strategy.
+
+        A continuation strategy that defines how predictor and corrector components of the algorithm
+        interact with the states of the mathematical system.
+        """
         self.sw = StateWriter(f"{self.output_file}/version.json")
         for i in range(self.continuation_steps):
 

@@ -1,3 +1,6 @@
+from jax.experimental import stax
+from jax.experimental.stax import BatchNorm, Conv, Dense, Flatten, Relu, LogSoftmax
+
 from examples.abstract_problem import AbstractProblem
 from typing import Tuple
 import jax.numpy as np
@@ -6,11 +9,13 @@ from jax import random
 from jax.scipy.special import logsumexp
 from jax.tree_util import *
 
-inputs = random.normal(random.PRNGKey(1), (1, 2 * 2))
-outputs = np.ones(shape=(1, 1))
+num_classes = 10
+inputs = random.normal(random.PRNGKey(1), (num_classes, 28, 28))
+outputs = np.ones(shape=(num_classes, 1))
+batch_size = 128
 
 
-class SimpleNeuralNetwork(AbstractProblem):
+class ConvNeuralNetwork(AbstractProblem):
     def __init__(self):
         pass
 
@@ -55,6 +60,26 @@ class SimpleNeuralNetwork(AbstractProblem):
         return scale * random.normal(w_key, (n, m)), scale * random.normal(b_key, (n,))
 
     def initial_value(self) -> Tuple:
+
+        init_fun, conv_net = stax.serial(
+            Conv(32, (5, 5), (2, 2), padding="SAME"),
+            BatchNorm(),
+            Relu,
+            Conv(32, (5, 5), (2, 2), padding="SAME"),
+            BatchNorm(),
+            Relu,
+            Conv(10, (3, 3), (2, 2), padding="SAME"),
+            BatchNorm(),
+            Relu,
+            Conv(10, (3, 3), (2, 2), padding="SAME"),
+            Relu,
+            Flatten,
+            Dense(num_classes),
+            LogSoftmax,
+        )
+
+        _, state = init_fun(random.PRNGKey(0), (batch_size, 1, 28, 28))
+
         bparam = [np.array([-0.50], dtype=np.float64)]
         layer_sizes = [4, 1]
         state = self.init_network_params(layer_sizes, random.PRNGKey(0))

@@ -20,13 +20,8 @@ class SecantPredictor(Predictor):
         self._state, self._bparam = self._concat_states[1]
         self._prev_state, self._prev_bparam = self._concat_states[0]
 
-    def _compute_secant(self):
-        """
-        Operation w1 - w1'/ delta_s
-        :param params_list: list of only one param ex- w1
-        :param delta_s: normalization
-        :return: secant vector of param
-        """
+    def _compute_secant(self):  # TODO: make only one vector
+        """Secant computation for PyTree"""
         self.secantvar_state = pytree_sub(self._state, self._prev_state)
         self.secantvar_bparam = pytree_sub(self._bparam, self._prev_bparam)
         states_norm = (
@@ -38,25 +33,12 @@ class SecantPredictor(Predictor):
         )
         del states_norm
 
-        # norm = 1e-5
-        # secantvar_state = []
-        # for (i, j) in zip(self._state, self._prev_state):
-        #     vec = i - j
-        #     secantvar_state.append(vec)
-        #     norm += np.linalg.norm(vec)
-        # secantvar_bparam = []
-        # for (i, j) in zip(self._bparam, self._prev_bparam):
-        #     vec = i - j
-        #     secantvar_bparam.append(vec)
-        #     norm += np.linalg.norm(vec)
-        #
-        # self.secantvar_state = [z/norm for z in secantvar_state]
-        # self.secantvar_bparam = [z/norm for z in secantvar_bparam]
-
-    # def _update_prev_states(self):
-    #     self._prev_state, self._prev_bparam = self._concat_states[1]
-
     def prediction_step(self) -> Tuple:
+        """Given current state predict next state.
+
+        Returns:
+          (state_guess: problem parameters, bparam_guess: continuation parameter) Tuple
+        """
         self.assign_states()
         self._compute_secant()
         self._state = tree_multimap(
@@ -71,6 +53,11 @@ class SecantPredictor(Predictor):
         return self._state, self._bparam
 
     def get_secant_vector_concat(self):
+        """Concatenated secant vector.
+
+        Returns:
+          [state_vector: problem parameters, bparam_vector: continuation parameter] list
+        """
         concat = []
         concat.extend(self.secantvar_state)
         concat.extend(self.secantvar_bparam)
@@ -78,6 +65,11 @@ class SecantPredictor(Predictor):
 
     # TODO: norm of state
     def get_secant_concat(self):
+        """Concatenated secant guess/point.
+
+        Returns:
+          [state_guess: problem parameters, bparam_guess: continuation parameter] list
+        """
         concat = []
         concat.extend(self._state)
         concat.extend(self._bparam)

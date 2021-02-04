@@ -4,6 +4,8 @@ from src.continuation.methods.corrector.base_corrector import Corrector
 
 
 class ConstrainedCorrector(Corrector):
+    """Minimize the objective using gradient based method along with some constraint"""
+
     def __init__(
         self,
         optimizer,
@@ -37,11 +39,13 @@ class ConstrainedCorrector(Corrector):
         self._state_secant_c2 = self.concat_states[3]
 
     def _compute_grads(self) -> list:
+        """Compute grads of objective"""
         grad_fn = jit(grad(self.objective, argnums=[0]))
         grads = grad_fn(self._state, self._bparam)
         return grads[0]
 
     def _compute_min_grads(self) -> Tuple:
+        """Compute grads of objective"""
         grad_fn = jit(grad(self.dual_objective, [0, 1]))
         state_grads, bparam_grads = grad_fn(
             self._state,
@@ -54,6 +58,7 @@ class ConstrainedCorrector(Corrector):
         return state_grads, bparam_grads
 
     def _compute_max_grads(self) -> list:
+        """Compute grads of objective"""
         grad_fn = jit(grad(self.dual_objective, argnums=[2]))
         grads = grad_fn(
             self._state,
@@ -66,8 +71,11 @@ class ConstrainedCorrector(Corrector):
         return grads[0]
 
     def correction_step(self) -> Tuple:
-        # TODO: Multiple optimizers can be made available
+        """Given the current state optimize to the correct state.
 
+        Returns:
+          (state: problem parameters, bparam: continuation parameter) Tuple
+        """
         for k in range(self.warmup_period):
             grads = self._compute_grads()
             self._state = self.opt.update_params(self._state, grads)

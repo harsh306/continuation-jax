@@ -1,10 +1,10 @@
 {
   "meta": {
-    "name": "vector_pitchfork",
+    "name": "simple_nn",
     "description": "description",
     "method": "parc",
     "optimizer": "gradient-descent",
-    "output_dir": "/opt/ml/output/"
+    "output_dir": "/opt/ml/output/simple_nn/"
   },
   "delta_s": 0.2,
   "delta_bparams": 0.005,

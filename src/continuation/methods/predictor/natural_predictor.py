@@ -5,6 +5,8 @@ from jax.tree_util import tree_multimap, tree_map
 
 
 class NaturalPredictor(Predictor):
+    """Natural Predictor only updates continuation parameter"""
+
     def __init__(self, concat_states, delta_s):
         super().__init__(concat_states)
         self.delta_s = delta_s
@@ -13,6 +15,11 @@ class NaturalPredictor(Predictor):
         super()._assign_states()
 
     def prediction_step(self) -> Tuple:
+        """Given current state predict next state.
+
+        Returns:
+          (state: problem parameters, bparam: continuation parameter) Tuple
+        """
         self._assign_states()
         self._bparam = tree_map(lambda a: a + self.delta_s, self._bparam)
         return self._state, self._bparam

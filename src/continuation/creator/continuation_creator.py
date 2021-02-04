@@ -9,12 +9,21 @@ from src.continuation.perturbed_arc_len_continuation import (
 
 
 class ContinuationCreator:
+    """Continuation Factory to create the right objects on the fly."""
+
     def __init__(self, problem: ProblemWraper, hparams: Dict, key=0):
         self.problem = problem
         self.hparams = hparams
         self.key = key
 
     def get_continuation_method(self) -> Continuation:
+        """Creates the continuation object based on user arguments.
+
+        Returns:
+            object: Continuation
+        Raises:
+            NotImplementedError
+        """
         if self.hparams["meta"]["method"] == "natural":
             state, bparam = self.problem.initial_value()
             return NaturalContinuation(
@@ -22,7 +31,7 @@ class ContinuationCreator:
                 bparam,
                 counter=0,
                 objective=self.problem.objective,
-                output_file=self.hparams["meta"]["output_dir"] + "/version.json",
+                output_file=self.hparams["meta"]["output_dir"],
                 hparams=self.hparams,
             )
 
@@ -39,7 +48,7 @@ class ContinuationCreator:
                 objective=self.problem.objective,
                 dual_objective=self.problem.dual_objective,
                 lagrange_multiplier=self.hparams["lagrange_init"],
-                output_file=self.hparams["meta"]["output_dir"] + "/version.json",
+                output_file=self.hparams["meta"]["output_dir"],
                 hparams=self.hparams,
             )
         elif self.hparams["meta"]["method"] == "parc-perturb":

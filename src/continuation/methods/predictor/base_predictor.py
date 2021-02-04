@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 
 
 class AbstractPredictor(ABC):
+    """Abstract Predictor to be inherited by developer for any new predictor."""
+
     @abstractmethod
     def prediction_step(self):
         pass

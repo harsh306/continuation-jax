@@ -1,3 +1,19 @@
+"""
+Main file to run contination on the user defined problem. Examples can be found in the examples/ directory.
+
+
+Continuation is topological procedure to train a neural network. This module tracks all
+the critical points or fixed points and dumps them to  output file provided in hparams.json file.
+
+  Typical usage example:
+
+  continuation = ContinuationCreator(
+            problem=problem, hparams=hparams
+        ).get_continuation_method()
+        continuation.run()
+
+
+"""
 from src.continuation.creator.continuation_creator import ContinuationCreator
 from examples.poly_nn.simple_neural_network import SimpleNeuralNetwork
 from examples.pitchfork2d.vectror_pitchfork import PitchForkProblem, VectorPitchFork
@@ -10,7 +26,7 @@ if __name__ == "__main__":
     with open(HPARAMS_PATH, "r") as hfile:
         hparams = json.load(hfile)
 
-    problem = VectorPitchFork()
+    problem = SimpleNeuralNetwork()
     problem = ProblemWraper(problem)
     if hparams["n_perturbs"] > 1:
         for perturb in range(hparams["n_perturbs"]):

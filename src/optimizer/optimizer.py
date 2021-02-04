@@ -30,6 +30,8 @@ def gradient_ascent(step_size):
 
 
 class Optimizer(ABC):
+    """Abstract Optimizer to be inherited by developer for any new optimizer."""
+
     @abstractmethod
     def update_params(
         self, params: list, grad_params: list, step_index: int = 0
@@ -57,7 +59,6 @@ class _GDOptimizer(Optimizer):
     def update_params(
         self, params: list, grad_params: list, step_index: int = 0
     ) -> list:
-        print(params, grad_params)
         for (w, dw) in zip(params, grad_params):
             print(w, dw)
         return [w - self.lr * dw for (w, dw) in zip(params, grad_params)]

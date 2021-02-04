@@ -9,6 +9,10 @@ from jax.tree_util import *
 
 
 class NaturalContinuation(Continuation):
+    """Natural Continuation strategy.
+
+    Composed of natural predictor and unconstrained corrector"""
+
     def __init__(self, state, bparam, counter, objective, output_file, hparams):
         self._state_wrap = StateVariable(state, counter)
         self._bparam_wrap = StateVariable(bparam, counter)
@@ -23,22 +27,10 @@ class NaturalContinuation(Continuation):
         self._delta_s = hparams["delta_s"]
 
     def run(self):
-        """Example function with types documented in the docstring.
+        """Runs the continuation strategy.
 
-        `PEP 484`_ type annotations are supported. If attribute, parameter, and
-        return types are annotated according to `PEP 484`_, they do not need to be
-        included in the docstring:
-
-        Args:
-            param1 (int): The first parameter.
-            param2 (str): The second parameter.
-
-        Returns:
-            bool: The return value. True for success, False otherwise.
-
-        .. _PEP 484:
-            https://www.python.org/dev/peps/pep-0484/
-
+        A continuation strategy that defines how predictor and corrector components of the algorithm
+        interact with the states of the mathematical system.
         """
         for i in range(self.continuation_steps):
 

@@ -11,6 +11,10 @@ import copy
 
 
 class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
+    """Noisy Pseudo Arc-length Continuation strategy.
+
+    Composed of secant predictor and noisy constrained corrector"""
+
     def __init__(
         self,
         state,
@@ -40,6 +44,11 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
         self.key_state = key_state
 
     def run(self):
+        """Runs the continuation strategy.
+
+        A continuation strategy that defines how predictor and corrector components of the algorithm
+        interact with the states of the mathematical system.
+        """
         self.sw = StateWriter(f"{self.output_file}/version_{self.key_state}.json")
 
         for i in range(self.continuation_steps):
