@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>src.continuation.natural_continuation &#8212; continuation 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for src.continuation.natural_continuation</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">src.continuation.base_continuation</span> <span class="kn">import</span> <span class="n">Continuation</span>
+<span class="kn">from</span> <span class="nn">src.continuation.states.state_variables</span> <span class="kn">import</span> <span class="n">StateVariable</span><span class="p">,</span> <span class="n">StateWriter</span>
+<span class="kn">from</span> <span class="nn">src.optimizer.optimizer</span> <span class="kn">import</span> <span class="n">OptimizerCreator</span>
+<span class="kn">from</span> <span class="nn">src.continuation.methods.predictor.natural_predictor</span> <span class="kn">import</span> <span class="n">NaturalPredictor</span>
+<span class="kn">from</span> <span class="nn">src.continuation.methods.corrector.unconstrained_corrector</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">UnconstrainedCorrector</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">jax.tree_util</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="NaturalContinuation"><a class="viewcode-back" href="../../../src.html#src.continuation.natural_continuation.NaturalContinuation">[docs]</a><span class="k">class</span> <span class="nc">NaturalContinuation</span><span class="p">(</span><span class="n">Continuation</span><span class="p">):</span>
+    <span class="c1"># May be refactor to only one continuation TODO</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">bparam</span><span class="p">,</span> <span class="n">counter</span><span class="p">,</span> <span class="n">objective</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">hparams</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state_wrap</span> <span class="o">=</span> <span class="n">StateVariable</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">counter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bparam_wrap</span> <span class="o">=</span> <span class="n">StateVariable</span><span class="p">(</span><span class="n">bparam</span><span class="p">,</span> <span class="n">counter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objective</span> <span class="o">=</span> <span class="n">objective</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opt</span> <span class="o">=</span> <span class="n">OptimizerCreator</span><span class="p">(</span><span class="n">opt_string</span><span class="o">=</span><span class="n">hparams</span><span class="p">[</span><span class="s1">&#39;meta&#39;</span><span class="p">][</span><span class="s1">&#39;optimizer&#39;</span><span class="p">],</span>
+                                    <span class="n">learning_rate</span><span class="o">=</span><span class="n">hparams</span><span class="p">[</span><span class="s1">&#39;natural_lr&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">continuation_steps</span> <span class="o">=</span> <span class="n">hparams</span><span class="p">[</span><span class="s1">&#39;continuation_steps&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sw</span> <span class="o">=</span> <span class="n">StateWriter</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_tree_def</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bparam_tree_def</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_delta_s</span> <span class="o">=</span> <span class="n">hparams</span><span class="p">[</span><span class="s1">&#39;delta_s&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="NaturalContinuation.run"><a class="viewcode-back" href="../../../src.html#src.continuation.natural_continuation.NaturalContinuation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Example function with types documented in the docstring.</span>
+
+<span class="sd">            `PEP 484`_ type annotations are supported. If attribute, parameter, and</span>
+<span class="sd">            return types are annotated according to `PEP 484`_, they do not need to be</span>
+<span class="sd">            included in the docstring:</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                param1 (int): The first parameter.</span>
+<span class="sd">                param2 (str): The second parameter.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                bool: The return value. True for success, False otherwise.</span>
+
+<span class="sd">            .. _PEP 484:</span>
+<span class="sd">                https://www.python.org/dev/peps/pep-0484/</span>
+
+<span class="sd">            &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">continuation_steps</span><span class="p">):</span>
+            <span class="n">flat_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_tree_def</span> <span class="o">=</span> <span class="n">tree_flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_wrap</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+            <span class="n">flat_bparam</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bparam_tree_def</span> <span class="o">=</span> <span class="n">tree_flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bparam_wrap</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state_wrap</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bparam_wrap</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sw</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_wrap</span><span class="o">.</span><span class="n">get_record</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bparam_wrap</span><span class="o">.</span><span class="n">get_record</span><span class="p">()]</span>
+            <span class="p">)</span>
+
+            <span class="n">concat_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">flat_state</span><span class="p">,</span> <span class="n">flat_bparam</span><span class="p">]</span>
+            <span class="n">predictor</span> <span class="o">=</span> <span class="n">NaturalPredictor</span><span class="p">(</span><span class="n">concat_states</span><span class="o">=</span><span class="n">concat_states</span><span class="p">,</span> <span class="n">delta_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delta_s</span><span class="p">)</span>
+            <span class="n">state</span><span class="p">,</span> <span class="n">bparam</span> <span class="o">=</span> <span class="n">predictor</span><span class="o">.</span><span class="n">prediction_step</span><span class="p">()</span>
+
+            <span class="n">concat_states</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">tree_unflatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state_tree_def</span><span class="p">,</span> <span class="n">state</span><span class="p">),</span>
+                <span class="n">tree_unflatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bparam_tree_def</span><span class="p">,</span> <span class="n">bparam</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">corrector</span> <span class="o">=</span> <span class="n">UnconstrainedCorrector</span><span class="p">(</span>
+                <span class="n">optimizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opt</span><span class="p">,</span>
+                <span class="n">objective</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">objective</span><span class="p">,</span>
+                <span class="n">concat_states</span><span class="o">=</span><span class="n">concat_states</span><span class="p">,</span>
+                <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+                <span class="n">outputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">state</span><span class="p">,</span> <span class="n">bparam</span> <span class="o">=</span> <span class="n">corrector</span><span class="o">.</span><span class="n">correction_step</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_state_wrap</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bparam_wrap</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">bparam</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">continuation</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../src.html">src/</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">examples/</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Harsh Nilesh Pathak.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
