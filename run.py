@@ -16,17 +16,18 @@ the critical points or fixed points and dumps them to  output file provided in h
 """
 from src.continuation.creator.continuation_creator import ContinuationCreator
 from examples.poly_nn.simple_neural_network import SimpleNeuralNetwork
+from examples.conv_nn.conv_nn import ConvNeuralNetwork
 from examples.pitchfork2d.vectror_pitchfork import PitchForkProblem, VectorPitchFork
 from examples.abstract_problem import ProblemWraper
 import json
 
 if __name__ == "__main__":
-    HPARAMS_PATH = "examples/pitchfork2d/hparams.json"
+    HPARAMS_PATH = "examples/conv_nn/hparams.json"
 
     with open(HPARAMS_PATH, "r") as hfile:
         hparams = json.load(hfile)
 
-    problem = SimpleNeuralNetwork()
+    problem = ConvNeuralNetwork()
     problem = ProblemWraper(problem)
     if hparams["n_perturbs"] > 1:
         for perturb in range(hparams["n_perturbs"]):

@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "name": "conv_nn",
+    "description": "description",
+    "method": "parc",
+    "optimizer": "gradient-descent",
+    "output_dir": "/opt/ml/output/conv_nn/"
+  },
+  "delta_s": 0.2,
+  "delta_bparams": 0.005,
+  "omega": 0.0016,
+  "omega_d": 0.99980,
+  "omega_m": 1.00,
+  "re_tresh": 1.0,
+  "retry": 5,
+  "warmup_steps": 100,
+  "natural_lr": 0.008,
+  "ascent_lr": 0.003,
+  "dual_descent_lr": 0.0006,
+  "lagrange_init": 0.02,
+  "solver": "DUAL",
+  "continuation_steps": 5,
+  "ascent_steps": 4,
+  "decent_steps": 12,
+  "n_perturbs": 1,
+  "n_dim_noise_sphere": 2,
+  "sphere_radius": 0.355,
+  "max_bounds": 6.0,
+  "min_grad": 2e-3
+}

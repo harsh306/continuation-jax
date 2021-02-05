@@ -68,5 +68,3 @@ master_doc = "index"
 autosummary_generate = True
 html_theme = 'default'
 RTD_NEW_THEME = True
-#html_style = 'css/theme.css'
-#nbsphinx_codecell_lexer = 'ipython3'
