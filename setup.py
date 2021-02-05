@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="continuation-jax", # Replace with your own username
+    name="continuation-jax",  # Replace with your own username
     version="0.0.1",
     author="Harsh Nilesh Pathak",
     author_email="harshnpathak@gmail.com",
@@ -21,5 +21,5 @@ setuptools.setup(
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )

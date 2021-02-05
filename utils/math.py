@@ -26,3 +26,7 @@ def pytree_sub(x, y):
 def pytree_array_equal(x, y):
     is_eq = tree_util.tree_multimap(lambda arr1, arr2: np.array_equal(arr1, arr2), x, y)
     return tree_util.tree_reduce(operator.and_, is_eq)
+
+
+def pytree_zeros_like(x):
+    return tree_util.tree_map(lambda arr: 0 * arr, x)
