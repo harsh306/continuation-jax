@@ -2,7 +2,7 @@
   "meta": {
     "name": "conv_nn",
     "description": "description",
-    "method": "natural",
+    "method": "parc",
     "optimizer": "gradient-descent",
     "output_dir": "/opt/ml/output/conv_nn/"
   },

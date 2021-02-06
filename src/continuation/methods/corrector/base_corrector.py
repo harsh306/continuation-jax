@@ -10,5 +10,5 @@ class Corrector(ABC):
         pass
 
     @abstractmethod
-    def assign_states(self):
+    def _assign_states(self):
         pass

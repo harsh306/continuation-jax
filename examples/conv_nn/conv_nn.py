@@ -12,10 +12,34 @@ from jax.tree_util import *
 from flax import linen as nn  # The Linen API
 from flax import optim
 import jax
+import numpy.random as npr
+from utils import datasets
 
-num_classes = 10
-inputs = random.normal(random.PRNGKey(1), (1, 10, 10))
-outputs = np.ones(shape=(num_classes, 10))
+#
+# num_classes = 10
+# inputs = random.normal(random.PRNGKey(1), (1, 10, 10))
+# outputs = np.ones(shape=(num_classes, 10))
+
+batch_size = 20
+train_images, train_labels, test_images, test_labels = datasets.mnist()
+num_train = train_images.shape[0]
+num_complete_batches, leftover = divmod(num_train, batch_size)
+num_batches = num_complete_batches + bool(leftover)
+
+
+
+def data_stream():
+    rng = npr.RandomState(0)
+    while True:
+        perm = rng.permutation(num_train)
+        for i in range(num_batches):
+            batch_idx = perm[i * batch_size:(i + 1) * batch_size]
+            yield train_images[batch_idx], train_labels[batch_idx]
+
+
+batches = data_stream()
+inputs, outputs = next(batches)
+
 
 
 class CNN(nn.Module):
@@ -53,7 +77,6 @@ class ConvNeuralNetwork(AbstractProblem):
         # vectorization of mini-batch of data.
         # #3rd argument's 0th-axis is vmaped. --> inputs(10)
         # batched_predict = vmap(neural_net_predict, in_axes=(None, None, 0))
-
         return loss
 
     @staticmethod

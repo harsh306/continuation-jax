@@ -14,18 +14,18 @@ class UnconstrainedCorrector(Corrector):
         optimizer: Optimizer,
         objective,
         concat_states,
+        grad_fn
     ):
         self.concat_states = concat_states
         self._state = None
         self._bparam = None
         self.opt = optimizer
         self.objective = objective
+        self.warmup_period = 1
+        self.grad_fn = grad_fn
 
-    def _compute_grads(self):
-        """Compute grads of objective"""
-        grad_fn = jit(grad(self.objective, argnums=[0]))
-        grads = grad_fn(self._state, self._bparam)
-        return grads[0]
+    def _assign_states(self):
+        self._state, self._bparam = self.concat_states
 
     def correction_step(self) -> Tuple:
         """Given the current state optimize to the correct state.
@@ -33,10 +33,9 @@ class UnconstrainedCorrector(Corrector):
         Returns:
           (state: problem parameters, bparam: continuation parameter) Tuple
         """
-        self.assign_states()
-        grads = self._compute_grads()
-        self._state = self.opt.update_params(self._state, grads)
+        self._assign_states()
+        for k in range(self.warmup_period):
+            grads = self.grad_fn(self._state, self._bparam)
+            self._state = self.opt.update_params(self._state, grads[0])
         return self._state, self._bparam
 
-    def assign_states(self):
-        self._state, self._bparam = self.concat_states

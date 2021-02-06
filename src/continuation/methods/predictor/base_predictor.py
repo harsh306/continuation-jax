@@ -40,5 +40,5 @@ class Predictor(AbstractPredictor):  # Todo state maintiner ?
         self._state = self._concat_states[0]
         self._bparam = self._concat_states[1]
 
-    def prediction_step(self) -> Tuple:
-        return self._state, self._bparam
+    def prediction_step(self):
+        pass

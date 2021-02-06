@@ -6,6 +6,9 @@ from src.continuation.methods.corrector.unconstrained_corrector import (
     UnconstrainedCorrector,
 )
 from jax.tree_util import *
+import gc
+from utils.profiler import profile
+from jax import jit, grad
 
 
 class NaturalContinuation(Continuation):
@@ -26,7 +29,9 @@ class NaturalContinuation(Continuation):
         self.sw = None
         self.output_file = output_file
         self._delta_s = hparams["delta_s"]
+        self.grad_fn = jit(grad(self.objective, argnums=[0]))
 
+    @profile(sort_by='cumulative', lines_to_print=10, strip_dirs=True)
     def run(self):
         """Runs the continuation strategy.
 
@@ -46,15 +51,20 @@ class NaturalContinuation(Continuation):
             predictor = NaturalPredictor(
                 concat_states=concat_states, delta_s=self._delta_s
             )
-            state, bparam = predictor.prediction_step()
+            predictor.prediction_step()
 
-            concat_states = [state, bparam]
+            concat_states = [predictor.state, predictor.bparam]
+            del predictor
+            gc.collect()
             corrector = UnconstrainedCorrector(
                 optimizer=self.opt,
                 objective=self.objective,
                 concat_states=concat_states,
+                grad_fn=self.grad_fn
             )
             state, bparam = corrector.correction_step()
-
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
+
+            del corrector
+            gc.collect()

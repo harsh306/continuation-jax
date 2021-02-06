@@ -1,4 +1,5 @@
 """
+Inspired from:
 @misc{gehring2019fax,
   author = {Clement Gehring, Pierre-Luc Bacon, Florian Schaefer},
   title = {{FAX: differentiating fixed point problems in JAX}},
@@ -12,6 +13,7 @@ import operator
 from jax import lax
 from jax import numpy as np
 from jax import tree_util
+from jax.experimental.optimizers import l2_norm
 
 
 def pytree_dot(x, y) -> float:
@@ -30,3 +32,12 @@ def pytree_array_equal(x, y):
 
 def pytree_zeros_like(x):
     return tree_util.tree_map(lambda arr: 0 * arr, x)
+
+
+def pytree_element_add(x, s):
+    return tree_util.tree_map(lambda a: a + s, x)
+
+
+def pytree_normalized(x):
+    return tree_util.tree_map(lambda a: a /l2_norm(x), x)
+

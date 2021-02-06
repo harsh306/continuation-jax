@@ -2,6 +2,7 @@ from typing import Tuple
 
 from src.continuation.methods.predictor.base_predictor import Predictor
 from jax.tree_util import tree_multimap, tree_map
+from utils.math import pytree_element_add
 
 
 class NaturalPredictor(Predictor):
@@ -14,12 +15,9 @@ class NaturalPredictor(Predictor):
     def _assign_states(self) -> None:
         super()._assign_states()
 
-    def prediction_step(self) -> Tuple:
+    def prediction_step(self):
         """Given current state predict next state.
-
-        Returns:
-          (state: problem parameters, bparam: continuation parameter) Tuple
+          Updates (state: problem parameters, bparam: continuation parameter) Tuple
         """
         self._assign_states()
-        self._bparam = tree_map(lambda a: a + self.delta_s, self._bparam)
-        return self._state, self._bparam
+        self._bparam = pytree_element_add(self._bparam, self.delta_s)

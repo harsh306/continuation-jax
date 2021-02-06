@@ -8,6 +8,7 @@ from src.continuation.methods.corrector.perturbed_constrained_corrector import (
 )
 from jax.tree_util import *
 import copy
+from utils.profiler import profile
 
 
 class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
@@ -43,6 +44,7 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
         )
         self.key_state = key_state
 
+    @profile(sort_by='cumulative', lines_to_print=10, strip_dirs=True)
     def run(self):
         """Runs the continuation strategy.
 
@@ -67,18 +69,14 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 concat_states=concat_states, delta_s=self._delta_s, omega=self._omega
             )
 
-            state_guess, bparam_guess = predictor.prediction_step()
-            secant_vector = predictor.get_secant_vector_concat()
-            secant_concat = predictor.get_secant_concat()
-
             self._prev_state = copy.deepcopy(self._state_wrap.state)
             self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)
 
             concat_states = [
-                state_guess,
-                bparam_guess,
-                secant_vector,
-                secant_concat,
+                predictor.state,
+                predictor.bparam,
+                predictor.secant_direction,
+                predictor.get_secant_concat(),
             ]
             corrector = PerturbedCorrecter(
                 optimizer=self.opt,

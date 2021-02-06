@@ -7,7 +7,8 @@ from src.continuation.methods.corrector.constrained_corrector import (
 )
 from jax.tree_util import *
 import copy
-
+from jax import jit, grad
+from utils.profiler import profile
 
 class PseudoArcLenContinuation(Continuation):
     # May be refactor to only one continuation TODO
@@ -49,7 +50,11 @@ class PseudoArcLenContinuation(Continuation):
         self._delta_s = hparams["delta_s"]
         self._omega = hparams["omega"]
         self.output_file = output_file
+        self.compute_min_grad_fn = jit(grad(self.dual_objective, [0, 1]))
+        self.compute_max_grad_fn = jit(grad(self.dual_objective, [2]))
+        self.compute_grad_fn = jit(grad(self.objective, [0]))
 
+    @profile(sort_by='cumulative', lines_to_print=10, strip_dirs=True)
     def run(self):
         """Runs the continuation strategy.
 
@@ -73,19 +78,16 @@ class PseudoArcLenContinuation(Continuation):
             predictor = SecantPredictor(
                 concat_states=concat_states, delta_s=self._delta_s, omega=self._omega
             )
-
-            state_guess, bparam_guess = predictor.prediction_step()
-            secant_vector = predictor.get_secant_vector_concat()
-            secant_concat = predictor.get_secant_concat()
+            predictor.prediction_step()
 
             self._prev_state = self._state_wrap.state
             self._prev_bparam = self._bparam_wrap.state
 
             concat_states = [
-                state_guess,
-                bparam_guess,
-                secant_vector,
-                secant_concat,
+                predictor.state,
+                predictor.bparam,
+                predictor.secant_direction,
+                predictor.get_secant_concat(),
             ]
 
             corrector = ConstrainedCorrector(
@@ -96,6 +98,9 @@ class PseudoArcLenContinuation(Continuation):
                 concat_states=concat_states,
                 delta_s=self._delta_s,
                 ascent_opt=self.ascent_opt,
+                compute_min_grad_fn=self.compute_min_grad_fn,
+                compute_max_grad_fn=self.compute_max_grad_fn,
+                compute_grad_fn=self.compute_grad_fn
             )
             state, bparam = corrector.correction_step()
 
