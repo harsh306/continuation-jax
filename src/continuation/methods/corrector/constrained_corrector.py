@@ -44,38 +44,6 @@ class ConstrainedCorrector(Corrector):
         self._state_secant_vector = self.concat_states[2]
         self._state_secant_c2 = self.concat_states[3]
 
-    # def _compute_grads(self) -> list:
-    #     #     """Compute grads of objective"""
-    #     #     grad_fn = jit(grad(self.objective, argnums=[0]))
-    #     #     grads = grad_fn(self._state, self._bparam)
-    #     #     return grads[0]
-    #     #
-    #     # def _compute_min_grads(self) -> Tuple:
-    #     #     """Compute grads of objective"""
-    #     #     grad_fn = jit(grad(self.dual_objective, [0, 1]))
-    #     #     state_grads, bparam_grads = grad_fn(
-    #     #         self._state,
-    #     #         self._bparam,
-    #     #         self._lagrange_multiplier,
-    #     #         self._state_secant_c2,
-    #     #         self._state_secant_vector,
-    #     #         self.delta_s,
-    #     #     )
-    #     #     return state_grads, bparam_grads
-    #     #
-    #     # def _compute_max_grads(self) -> list:
-    #     #     """Compute grads of objective"""
-    #     #     grad_fn = jit(grad(self.dual_objective, argnums=[2]))
-    #     #     grads = grad_fn(
-    #     #         self._state,
-    #     #         self._bparam,
-    #     #         self._lagrange_multiplier,
-    #     #         self._state_secant_c2,
-    #     #         self._state_secant_vector,
-    #     #         self.delta_s,
-    #     #     )
-    #     #     return grads[0]
-
     def correction_step(self) -> Tuple:
         """Given the current state optimize to the correct state.
 

@@ -46,6 +46,9 @@
     <span class="n">UnconstrainedCorrector</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">jax.tree_util</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">from</span> <span class="nn">utils.profiler</span> <span class="kn">import</span> <span class="n">profile</span>
+<span class="kn">from</span> <span class="nn">jax</span> <span class="kn">import</span> <span class="n">jit</span><span class="p">,</span> <span class="n">grad</span>
 
 
 <div class="viewcode-block" id="NaturalContinuation"><a class="viewcode-back" href="../../../src.html#src.continuation.natural_continuation.NaturalContinuation">[docs]</a><span class="k">class</span> <span class="nc">NaturalContinuation</span><span class="p">(</span><span class="n">Continuation</span><span class="p">):</span>
@@ -63,15 +66,19 @@
             <span class="n">opt_string</span><span class="o">=</span><span class="n">hparams</span><span class="p">[</span><span class="s2">&quot;meta&quot;</span><span class="p">][</span><span class="s2">&quot;optimizer&quot;</span><span class="p">],</span> <span class="n">learning_rate</span><span class="o">=</span><span class="n">hparams</span><span class="p">[</span><span class="s2">&quot;natural_lr&quot;</span><span class="p">]</span>
         <span class="p">)</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">continuation_steps</span> <span class="o">=</span> <span class="n">hparams</span><span class="p">[</span><span class="s2">&quot;continuation_steps&quot;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sw</span> <span class="o">=</span> <span class="n">StateWriter</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sw</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_file</span> <span class="o">=</span> <span class="n">output_file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_delta_s</span> <span class="o">=</span> <span class="n">hparams</span><span class="p">[</span><span class="s2">&quot;delta_s&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad_fn</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objective</span><span class="p">,</span> <span class="n">argnums</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
-<div class="viewcode-block" id="NaturalContinuation.run"><a class="viewcode-back" href="../../../src.html#src.continuation.natural_continuation.NaturalContinuation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NaturalContinuation.run"><a class="viewcode-back" href="../../../src.html#src.continuation.natural_continuation.NaturalContinuation.run">[docs]</a>    <span class="nd">@profile</span><span class="p">(</span><span class="n">sort_by</span><span class="o">=</span><span class="s1">&#39;cumulative&#39;</span><span class="p">,</span> <span class="n">lines_to_print</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">strip_dirs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Runs the continuation strategy.</span>
 
 <span class="sd">        A continuation strategy that defines how predictor and corrector components of the algorithm</span>
 <span class="sd">        interact with the states of the mathematical system.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sw</span> <span class="o">=</span> <span class="n">StateWriter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{self.output_file}</span><span class="s2">/version.json&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">continuation_steps</span><span class="p">):</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_state_wrap</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="n">i</span>
@@ -84,18 +91,23 @@
             <span class="n">predictor</span> <span class="o">=</span> <span class="n">NaturalPredictor</span><span class="p">(</span>
                 <span class="n">concat_states</span><span class="o">=</span><span class="n">concat_states</span><span class="p">,</span> <span class="n">delta_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delta_s</span>
             <span class="p">)</span>
-            <span class="n">state</span><span class="p">,</span> <span class="n">bparam</span> <span class="o">=</span> <span class="n">predictor</span><span class="o">.</span><span class="n">prediction_step</span><span class="p">()</span>
+            <span class="n">predictor</span><span class="o">.</span><span class="n">prediction_step</span><span class="p">()</span>
 
-            <span class="n">concat_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">bparam</span><span class="p">]</span>
+            <span class="n">concat_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">predictor</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">predictor</span><span class="o">.</span><span class="n">bparam</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">predictor</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
             <span class="n">corrector</span> <span class="o">=</span> <span class="n">UnconstrainedCorrector</span><span class="p">(</span>
                 <span class="n">optimizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opt</span><span class="p">,</span>
                 <span class="n">objective</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">objective</span><span class="p">,</span>
                 <span class="n">concat_states</span><span class="o">=</span><span class="n">concat_states</span><span class="p">,</span>
+                <span class="n">grad_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grad_fn</span>
             <span class="p">)</span>
             <span class="n">state</span><span class="p">,</span> <span class="n">bparam</span> <span class="o">=</span> <span class="n">corrector</span><span class="o">.</span><span class="n">correction_step</span><span class="p">()</span>
-
             <span class="bp">self</span><span class="o">.</span><span class="n">_state_wrap</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_bparam_wrap</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">bparam</span></div></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bparam_wrap</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">bparam</span>
+
+            <span class="k">del</span> <span class="n">corrector</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span></div></div>
 </pre></div>
 
             <div class="clearer"></div>

@@ -47,7 +47,8 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">jax.tree_util</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">import</span> <span class="nn">copy</span>
-
+<span class="kn">from</span> <span class="nn">jax</span> <span class="kn">import</span> <span class="n">jit</span><span class="p">,</span> <span class="n">grad</span>
+<span class="kn">from</span> <span class="nn">utils.profiler</span> <span class="kn">import</span> <span class="n">profile</span>
 
 <div class="viewcode-block" id="PseudoArcLenContinuation"><a class="viewcode-back" href="../../../src.html#src.continuation.arc_len_continuation.PseudoArcLenContinuation">[docs]</a><span class="k">class</span> <span class="nc">PseudoArcLenContinuation</span><span class="p">(</span><span class="n">Continuation</span><span class="p">):</span>
     <span class="c1"># May be refactor to only one continuation TODO</span>
@@ -89,8 +90,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_delta_s</span> <span class="o">=</span> <span class="n">hparams</span><span class="p">[</span><span class="s2">&quot;delta_s&quot;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_omega</span> <span class="o">=</span> <span class="n">hparams</span><span class="p">[</span><span class="s2">&quot;omega&quot;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_file</span> <span class="o">=</span> <span class="n">output_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_min_grad_fn</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dual_objective</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_max_grad_fn</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dual_objective</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_grad_fn</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objective</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
-<div class="viewcode-block" id="PseudoArcLenContinuation.run"><a class="viewcode-back" href="../../../src.html#src.continuation.arc_len_continuation.PseudoArcLenContinuation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="PseudoArcLenContinuation.run"><a class="viewcode-back" href="../../../src.html#src.continuation.arc_len_continuation.PseudoArcLenContinuation.run">[docs]</a>    <span class="nd">@profile</span><span class="p">(</span><span class="n">sort_by</span><span class="o">=</span><span class="s1">&#39;cumulative&#39;</span><span class="p">,</span> <span class="n">lines_to_print</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">strip_dirs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Runs the continuation strategy.</span>
 
 <span class="sd">        A continuation strategy that defines how predictor and corrector components of the algorithm</span>
@@ -113,19 +118,16 @@
             <span class="n">predictor</span> <span class="o">=</span> <span class="n">SecantPredictor</span><span class="p">(</span>
                 <span class="n">concat_states</span><span class="o">=</span><span class="n">concat_states</span><span class="p">,</span> <span class="n">delta_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delta_s</span><span class="p">,</span> <span class="n">omega</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_omega</span>
             <span class="p">)</span>
-
-            <span class="n">state_guess</span><span class="p">,</span> <span class="n">bparam_guess</span> <span class="o">=</span> <span class="n">predictor</span><span class="o">.</span><span class="n">prediction_step</span><span class="p">()</span>
-            <span class="n">secant_vector</span> <span class="o">=</span> <span class="n">predictor</span><span class="o">.</span><span class="n">get_secant_vector_concat</span><span class="p">()</span>
-            <span class="n">secant_concat</span> <span class="o">=</span> <span class="n">predictor</span><span class="o">.</span><span class="n">get_secant_concat</span><span class="p">()</span>
+            <span class="n">predictor</span><span class="o">.</span><span class="n">prediction_step</span><span class="p">()</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_prev_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_wrap</span><span class="o">.</span><span class="n">state</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_prev_bparam</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bparam_wrap</span><span class="o">.</span><span class="n">state</span>
 
             <span class="n">concat_states</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">state_guess</span><span class="p">,</span>
-                <span class="n">bparam_guess</span><span class="p">,</span>
-                <span class="n">secant_vector</span><span class="p">,</span>
-                <span class="n">secant_concat</span><span class="p">,</span>
+                <span class="n">predictor</span><span class="o">.</span><span class="n">state</span><span class="p">,</span>
+                <span class="n">predictor</span><span class="o">.</span><span class="n">bparam</span><span class="p">,</span>
+                <span class="n">predictor</span><span class="o">.</span><span class="n">secant_direction</span><span class="p">,</span>
+                <span class="n">predictor</span><span class="o">.</span><span class="n">get_secant_concat</span><span class="p">(),</span>
             <span class="p">]</span>
 
             <span class="n">corrector</span> <span class="o">=</span> <span class="n">ConstrainedCorrector</span><span class="p">(</span>
@@ -136,6 +138,9 @@
                 <span class="n">concat_states</span><span class="o">=</span><span class="n">concat_states</span><span class="p">,</span>
                 <span class="n">delta_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delta_s</span><span class="p">,</span>
                 <span class="n">ascent_opt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ascent_opt</span><span class="p">,</span>
+                <span class="n">compute_min_grad_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_min_grad_fn</span><span class="p">,</span>
+                <span class="n">compute_max_grad_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_max_grad_fn</span><span class="p">,</span>
+                <span class="n">compute_grad_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_grad_fn</span>
             <span class="p">)</span>
             <span class="n">state</span><span class="p">,</span> <span class="n">bparam</span> <span class="o">=</span> <span class="n">corrector</span><span class="o">.</span><span class="n">correction_step</span><span class="p">()</span>
 

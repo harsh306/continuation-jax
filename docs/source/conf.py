@@ -39,9 +39,9 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.doctest",
     "sphinx.ext.ifconfig",
-    "sphinx.ext.mathjax",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
+    "sphinx_rtd_theme"
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -61,10 +61,11 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
-
-source_suffix = ".rst"
-master_doc = "index"
-autosummary_generate = True
 html_theme = "default"
 RTD_NEW_THEME = True
+autosummary_generate = True
+html_static_path = ["_static"]
+source_suffix = ".rst"
+master_doc = "index"
+
+

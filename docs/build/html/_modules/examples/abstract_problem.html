@@ -100,9 +100,12 @@
         <span class="n">result</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="c1"># params, _ = tree_flatten(params) # TODO: remove flatten</span>
         <span class="c1"># bparams, _ = tree_flatten(bparams)</span>
-        <span class="n">state_stack</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># TODO: reove stack list</span>
-        <span class="n">state_stack</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-        <span class="n">state_stack</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">bparams</span><span class="p">)</span>
+        <span class="c1"># state_stack = []  # TODO: reove stack list</span>
+        <span class="c1"># state_stack.extend(params)</span>
+        <span class="c1"># state_stack.extend(bparams)</span>
+        <span class="n">state_stack</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">state_stack</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="n">params</span><span class="p">})</span>
+        <span class="n">state_stack</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;bparam&#39;</span><span class="p">:</span> <span class="n">bparams</span><span class="p">})</span>
         <span class="n">parc_vec</span> <span class="o">=</span> <span class="n">pytree_sub</span><span class="p">(</span><span class="n">state_stack</span><span class="p">,</span> <span class="n">secant_guess</span><span class="p">)</span>
         <span class="c1"># parc_vec = [i - j for (i, j) in zip(state_stack, secant_guess)] # tree_multimap</span>
         <span class="n">result</span> <span class="o">+=</span> <span class="n">pytree_dot</span><span class="p">(</span><span class="n">parc_vec</span><span class="p">,</span> <span class="n">secant_vec</span><span class="p">)</span>
