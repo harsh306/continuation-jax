@@ -68,7 +68,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # so a file named "default.css" will overwrite the builtin "default.css".
 #html_theme = "default"
 
-html_theme = "default"
+html_theme = "classic"
 RTD_NEW_THEME = True
 autosummary_generate = True
 html_static_path = ["_static"]
