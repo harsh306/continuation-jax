@@ -23,6 +23,8 @@ from examples.pitchfork2d.vectror_pitchfork import PitchForkProblem, VectorPitch
 from examples.abstract_problem import ProblemWraper
 import json
 
+#TODO: use **kwargs to reduce params
+
 if __name__ == "__main__":
     HPARAMS_PATH = "examples/autoencoder/hparams.json"
 

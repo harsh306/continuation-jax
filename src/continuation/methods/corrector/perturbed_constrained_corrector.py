@@ -2,11 +2,13 @@ from src.continuation.methods.corrector.constrained_corrector import (
     ConstrainedCorrector,
 )
 from typing import Tuple
-from jax.tree_util import tree_map, tree_multimap
+from jax.tree_util import tree_map, tree_flatten
 from jax import random
-from utils.math import pytree_sub, pytree_dot
+from utils.math_trees import *
 from jax import numpy as np
-
+from utils.rotation_ndims import get_rotation_pytree
+from jax import jit
+import math
 
 class PerturbedCorrecter(ConstrainedCorrector):
     """Minimize the objective using gradient based method along with some constraint and noise"""
@@ -21,6 +23,9 @@ class PerturbedCorrecter(ConstrainedCorrector):
         delta_s,
         ascent_opt,
         key_state,
+        compute_min_grad_fn,
+        compute_max_grad_fn,
+        compute_grad_fn
     ):
         super().__init__(
             optimizer,
@@ -30,36 +35,52 @@ class PerturbedCorrecter(ConstrainedCorrector):
             concat_states,
             delta_s,
             ascent_opt,
+            compute_min_grad_fn,
+            compute_max_grad_fn,
+            compute_grad_fn
         )
         self._parc_vec = None
         self.key = random.PRNGKey(key_state)
 
+
     def _perform_perturb(self):
         """Add noise to a PyTree"""
-        self._state = tree_map(
-            lambda a: a + random.choice(self.key, np.array([1.0, -1.0]), a.shape),
-            self._state,
+
+        destination, _ = tree_flatten(self._state_secant_vector)
+        destination, _ = pytree_to_vec(destination)
+
+        src = np.hstack((np.zeros(len(destination)-1), 1.0))
+        src, _ = pytree_to_vec(src)
+        assert src.shape == destination.shape
+        rotation_matrix = get_rotation_pytree(src, destination) # TODO: Refactor
+
+        sample = tree_map(
+            lambda a: a + random.normal(self.key, a.shape),
+            pytree_zeros_like(self._state),
         )
-        self._bparam = tree_map(
-            lambda a: a + random.choice(self.key, np.array([1.0, -1.0]), a.shape),
-            self._bparam,
-        )
-        state_stack = []  # TODO: reove stack list
-        state_stack.extend(self._state)
-        state_stack.extend(self._bparam)
+        z = pytree_zeros_like(self._bparam)
+        sample_vec, sample_unravel = pytree_to_vec([sample, z])
+
+        #transform sample to arc-plane
+        new_sample = np.dot(rotation_matrix, sample_vec) + 2*pytree_normalized(destination)
+
+        # sample_vec to pytree
+        new_sample = sample_unravel(new_sample)
+        self._state= new_sample[0]
+        self._bparam = new_sample[1]
+
+        state_stack = dict()
+        state_stack.update({"state": self._state})
+        state_stack.update({"bparam": self._bparam})
         self._parc_vec = pytree_sub(state_stack, self._state_secant_c2)
 
     def _evaluate_perturb(self):
         """Evaluate weather the perturbed vector is orthogonal to secant vector"""
         dot = pytree_dot(self._parc_vec, self._state_secant_vector)
-        if not np.isclose(dot, 0.0, rtol=0.15):
-            print("Reverting perturb")
-            self._state = tree_map(
-                lambda a: a - random.normal(self.key, a.shape), self._state
-            )
-            self._bparam = tree_map(
-                lambda a: a - random.normal(self.key, a.shape), self._bparam
-            )
+        if math.isclose(dot, 0.0,  abs_tol=0.25):
+            print(f"Perturb was near arc-plane. {dot}")
+        else:
+            print(f"Perturb was not on arc-plane.{dot}")
 
     def correction_step(self) -> Tuple:
         """Given the current state optimize to the correct state.

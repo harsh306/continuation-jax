@@ -2,7 +2,7 @@
   "meta": {
     "name": "conv_nn",
     "description": "description",
-    "method": "parc",
+    "method": "parc-perturb",
     "optimizer": "gradient-descent",
     "output_dir": "/opt/ml/output/pca_ae/"
   },
@@ -22,7 +22,7 @@
   "continuation_steps": 10,
   "ascent_steps": 4,
   "decent_steps": 12,
-  "n_perturbs": 1,
+  "n_perturbs": 3,
   "n_dim_noise_sphere": 2,
   "sphere_radius": 0.355,
   "max_bounds": 6.0,

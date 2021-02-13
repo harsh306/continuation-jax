@@ -9,7 +9,9 @@ from src.continuation.perturbed_arc_len_continuation import (
 
 
 class ContinuationCreator:
-    """Continuation Factory to create the right objects on the fly."""
+    """Continuation Factory to create the right objects on the fly.
+        TODO: Use **kwargs to reduce the size of the constructors.
+    """
 
     def __init__(self, problem: ProblemWraper, hparams: Dict, key=0):
         self.problem = problem

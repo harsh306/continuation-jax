@@ -90,7 +90,7 @@ class PseudoArcLenContinuation(Continuation):
                 predictor.secant_direction,
                 predictor.get_secant_concat(),
             ]
-
+            del predictor
             corrector = ConstrainedCorrector(
                 optimizer=self.opt,
                 objective=self.objective,

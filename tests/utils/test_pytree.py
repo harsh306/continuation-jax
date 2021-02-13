@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from utils.math import pytree_dot, pytree_sub, pytree_array_equal, pytree_zeros_like
+from utils.math_trees import pytree_dot, pytree_sub, pytree_array_equal, pytree_zeros_like
 import jax.numpy as np
 from examples.conv_nn.conv_nn import ConvNeuralNetwork
 import copy

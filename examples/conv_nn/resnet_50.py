@@ -39,6 +39,13 @@ num_steps = 10
 
 # ResNet blocks compose other layers
 
+def LambdaIdentity():
+  """Layer construction function for an identity layer."""
+  init_fun = lambda rng, input_shape: (input_shape, ())
+  apply_fun = lambda params, inputs, **kwargs: inputs * kwargs.get('bparams')
+  return init_fun, apply_fun
+LambdaIdentity = LambdaIdentity()
+
 
 def ConvBlock(kernel_size, filters, strides=(2, 2)):
     ks = kernel_size

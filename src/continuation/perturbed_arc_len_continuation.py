@@ -10,6 +10,7 @@ from jax.tree_util import *
 import copy
 from utils.profiler import profile
 
+#TODO: make **kwargs availible
 
 class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
     """Noisy Pseudo Arc-length Continuation strategy.
@@ -72,12 +73,15 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
             self._prev_state = copy.deepcopy(self._state_wrap.state)
             self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)
 
+            predictor.prediction_step()
+
             concat_states = [
                 predictor.state,
                 predictor.bparam,
                 predictor.secant_direction,
                 predictor.get_secant_concat(),
             ]
+            del predictor
             corrector = PerturbedCorrecter(
                 optimizer=self.opt,
                 objective=self.objective,
@@ -87,6 +91,9 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 delta_s=self._delta_s,
                 ascent_opt=self.ascent_opt,
                 key_state=self.key_state,
+                compute_min_grad_fn=self.compute_min_grad_fn,
+                compute_max_grad_fn=self.compute_max_grad_fn,
+                compute_grad_fn=self.compute_grad_fn,
             )
             state, bparam = corrector.correction_step()
 

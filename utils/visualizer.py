@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+import jsonlines
 
-# df = pd.read_json('/opt/ml/pca_ae/version.json')
+path = '/opt/ml/output/pca_ae/version.json'
+data = []
 
-results = json.load('/opt/ml/pca_ae/version.json')
-print(results)
+with jsonlines.open(path) as reader:
+    for obj in reader.iter(type=list, skip_invalid=True, skip_empty=True):
+        print(obj[0])
+

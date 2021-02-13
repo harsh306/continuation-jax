@@ -1,6 +1,6 @@
 from src.continuation.methods.predictor.base_predictor import Predictor
 from jax.tree_util import tree_multimap
-from utils.math import pytree_sub, pytree_normalized
+from utils.math_trees import pytree_sub, pytree_normalized
 
 
 class SecantPredictor(Predictor):
