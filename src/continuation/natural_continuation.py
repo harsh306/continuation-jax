@@ -31,7 +31,7 @@ class NaturalContinuation(Continuation):
         self._delta_s = hparams["delta_s"]
         self.grad_fn = jit(grad(self.objective, argnums=[0]))
 
-    @profile(sort_by='cumulative', lines_to_print=10, strip_dirs=True)
+    @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):
         """Runs the continuation strategy.
 
@@ -60,7 +60,7 @@ class NaturalContinuation(Continuation):
                 optimizer=self.opt,
                 objective=self.objective,
                 concat_states=concat_states,
-                grad_fn=self.grad_fn
+                grad_fn=self.grad_fn,
             )
             state, bparam = corrector.correction_step()
             self._state_wrap.state = state

@@ -9,13 +9,7 @@ from src.optimizer.optimizer import Optimizer
 class UnconstrainedCorrector(Corrector):
     """Minimize the objective using gradient based method."""
 
-    def __init__(
-        self,
-        optimizer: Optimizer,
-        objective,
-        concat_states,
-        grad_fn
-    ):
+    def __init__(self, optimizer: Optimizer, objective, concat_states, grad_fn):
         self.concat_states = concat_states
         self._state = None
         self._bparam = None
@@ -38,4 +32,3 @@ class UnconstrainedCorrector(Corrector):
             grads = self.grad_fn(self._state, self._bparam)
             self._state = self.opt.update_params(self._state, grads[0])
         return self._state, self._bparam
-

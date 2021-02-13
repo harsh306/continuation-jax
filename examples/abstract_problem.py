@@ -64,8 +64,8 @@ class ProblemWraper:
         # state_stack.extend(params)
         # state_stack.extend(bparams)
         state_stack = dict()
-        state_stack.update({'state': params})
-        state_stack.update({'bparam': bparams})
+        state_stack.update({"state": params})
+        state_stack.update({"bparam": bparams})
         parc_vec = pytree_sub(state_stack, secant_guess)
         # parc_vec = [i - j for (i, j) in zip(state_stack, secant_guess)] # tree_multimap
         result += pytree_dot(parc_vec, secant_vec)

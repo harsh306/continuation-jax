@@ -44,7 +44,7 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
         )
         self.key_state = key_state
 
-    @profile(sort_by='cumulative', lines_to_print=10, strip_dirs=True)
+    @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):
         """Runs the continuation strategy.
 

@@ -17,7 +17,7 @@ class NaturalPredictor(Predictor):
 
     def prediction_step(self):
         """Given current state predict next state.
-          Updates (state: problem parameters, bparam: continuation parameter) Tuple
+        Updates (state: problem parameters, bparam: continuation parameter) Tuple
         """
         self._assign_states()
         self._bparam = pytree_element_add(self._bparam, self.delta_s)

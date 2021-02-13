@@ -37,10 +37,12 @@ class PerturbedCorrecter(ConstrainedCorrector):
     def _perform_perturb(self):
         """Add noise to a PyTree"""
         self._state = tree_map(
-            lambda a: a + random.normal(self.key, a.shape), self._state
+            lambda a: a + random.choice(self.key, np.array([1.0, -1.0]), a.shape),
+            self._state,
         )
         self._bparam = tree_map(
-            lambda a: a + random.normal(self.key, a.shape), self._bparam
+            lambda a: a + random.choice(self.key, np.array([1.0, -1.0]), a.shape),
+            self._bparam,
         )
         state_stack = []  # TODO: reove stack list
         state_stack.extend(self._state)
@@ -67,18 +69,33 @@ class PerturbedCorrecter(ConstrainedCorrector):
         """
         self._perform_perturb()
         self._evaluate_perturb()
+        # super().correction_step()
 
         for k in range(self.warmup_period):
-            grads = self._compute_grads()
-            self._state = self.opt.update_params(self._state, grads)
+            grads = self.compute_grad_fn(self._state, self._bparam)
+            self._state = self.opt.update_params(self._state, grads[0])
 
         for k in range(self.ascent_period):
-            lagrange_grads = self._compute_max_grads()
-            self._lagrange_multiplier = self.opt.update_params(
-                self._lagrange_multiplier, lagrange_grads
+            lagrange_grads = self.compute_max_grad_fn(
+                self._state,
+                self._bparam,
+                self._lagrange_multiplier,
+                self._state_secant_c2,
+                self._state_secant_vector,
+                self.delta_s,
+            )
+            self._lagrange_multiplier = self.ascent_opt.update_params(
+                self._lagrange_multiplier, lagrange_grads[0]
             )
             for j in range(self.descent_period):
-                state_grads, bpram_grads = self._compute_min_grads()
+                state_grads, bpram_grads = self.compute_min_grad_fn(
+                    self._state,
+                    self._bparam,
+                    self._lagrange_multiplier,
+                    self._state_secant_c2,
+                    self._state_secant_vector,
+                    self.delta_s,
+                )
                 self._bparam = self.opt.update_params(self._bparam, bpram_grads)
                 self._state = self.opt.update_params(self._state, state_grads)
 

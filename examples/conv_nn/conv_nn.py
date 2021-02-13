@@ -27,19 +27,17 @@ num_complete_batches, leftover = divmod(num_train, batch_size)
 num_batches = num_complete_batches + bool(leftover)
 
 
-
 def data_stream():
     rng = npr.RandomState(0)
     while True:
         perm = rng.permutation(num_train)
         for i in range(num_batches):
-            batch_idx = perm[i * batch_size:(i + 1) * batch_size]
+            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
             yield train_images[batch_idx], train_labels[batch_idx]
 
 
 batches = data_stream()
 inputs, outputs = next(batches)
-
 
 
 class CNN(nn.Module):

@@ -20,8 +20,12 @@ class SecantPredictor(Predictor):
 
     def _compute_secant(self):
         """Secant computation for PyTree"""
-        self.secant_direction.update({'state': pytree_sub(self._state, self._prev_state)})
-        self.secant_direction.update({'bparam': pytree_sub(self._bparam, self._prev_bparam)})
+        self.secant_direction.update(
+            {"state": pytree_sub(self._state, self._prev_state)}
+        )
+        self.secant_direction.update(
+            {"bparam": pytree_sub(self._bparam, self._prev_bparam)}
+        )
         self.secant_direction = pytree_normalized(self.secant_direction)
 
     def prediction_step(self):
@@ -31,10 +35,12 @@ class SecantPredictor(Predictor):
         self._assign_states()
         self._compute_secant()
         self._state = tree_multimap(
-            lambda a, b: a + self.omega * b, self._state, self.secant_direction['state']
+            lambda a, b: a + self.omega * b, self._state, self.secant_direction["state"]
         )
         self._bparam = tree_multimap(
-            lambda a, b: a + self.omega * b, self._bparam, self.secant_direction['bparam']
+            lambda a, b: a + self.omega * b,
+            self._bparam,
+            self.secant_direction["bparam"],
         )
 
     def get_secant_vector_concat(self):
@@ -53,6 +59,6 @@ class SecantPredictor(Predictor):
           [state_guess: problem parameters, bparam_guess: continuation parameter] list
         """
         concat = dict()
-        concat.update({'state' : self._state})
-        concat.update({'bparam': self._bparam})
+        concat.update({"state": self._state})
+        concat.update({"bparam": self._bparam})
         return concat

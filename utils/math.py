@@ -39,5 +39,4 @@ def pytree_element_add(x, s):
 
 
 def pytree_normalized(x):
-    return tree_util.tree_map(lambda a: a /l2_norm(x), x)
-
+    return tree_util.tree_map(lambda a: a / l2_norm(x), x)

@@ -17,7 +17,7 @@ class ConstrainedCorrector(Corrector):
         ascent_opt,
         compute_min_grad_fn,
         compute_max_grad_fn,
-        compute_grad_fn
+        compute_grad_fn,
     ):
         self.concat_states = concat_states
         self._state = None
@@ -61,7 +61,7 @@ class ConstrainedCorrector(Corrector):
                 self._lagrange_multiplier,
                 self._state_secant_c2,
                 self._state_secant_vector,
-                self.delta_s
+                self.delta_s,
             )
             self._lagrange_multiplier = self.ascent_opt.update_params(
                 self._lagrange_multiplier, lagrange_grads[0]
@@ -73,7 +73,7 @@ class ConstrainedCorrector(Corrector):
                     self._lagrange_multiplier,
                     self._state_secant_c2,
                     self._state_secant_vector,
-                    self.delta_s
+                    self.delta_s,
                 )
                 self._bparam = self.opt.update_params(self._bparam, bpram_grads)
                 self._state = self.opt.update_params(self._state, state_grads)

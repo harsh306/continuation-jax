@@ -10,6 +10,7 @@ import copy
 from jax import jit, grad
 from utils.profiler import profile
 
+
 class PseudoArcLenContinuation(Continuation):
     # May be refactor to only one continuation TODO
     """Pseudo Arc-length Continuation strategy.
@@ -54,7 +55,7 @@ class PseudoArcLenContinuation(Continuation):
         self.compute_max_grad_fn = jit(grad(self.dual_objective, [2]))
         self.compute_grad_fn = jit(grad(self.objective, [0]))
 
-    @profile(sort_by='cumulative', lines_to_print=10, strip_dirs=True)
+    @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):
         """Runs the continuation strategy.
 
@@ -100,7 +101,7 @@ class PseudoArcLenContinuation(Continuation):
                 ascent_opt=self.ascent_opt,
                 compute_min_grad_fn=self.compute_min_grad_fn,
                 compute_max_grad_fn=self.compute_max_grad_fn,
-                compute_grad_fn=self.compute_grad_fn
+                compute_grad_fn=self.compute_grad_fn,
             )
             state, bparam = corrector.correction_step()
 
