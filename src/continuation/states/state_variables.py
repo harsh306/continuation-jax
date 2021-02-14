@@ -45,6 +45,6 @@ class StateWriter:
 
         self.writer = jsonlines.Writer(open(file_name, mode="a", encoding='utf-8'), dumps=NumpyEncoder().encode)
 
-    def write(self, record: dict):
+    def write(self, record: list):
         """Write/Append the record to the file."""
         self.writer.write(record)
