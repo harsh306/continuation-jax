@@ -9,8 +9,10 @@ from src.continuation.methods.corrector.perturbed_constrained_corrector import (
 from jax.tree_util import *
 import copy
 from utils.profiler import profile
+import gc
 
 #TODO: make **kwargs availible
+
 
 class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
     """Noisy Pseudo Arc-length Continuation strategy.
@@ -82,6 +84,7 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 predictor.get_secant_concat(),
             ]
             del predictor
+            gc.collect()
             corrector = PerturbedCorrecter(
                 optimizer=self.opt,
                 objective=self.objective,
@@ -99,3 +102,5 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
 
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
+            del corrector
+            gc.collect()

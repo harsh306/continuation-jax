@@ -8,6 +8,7 @@ from src.continuation.methods.corrector.constrained_corrector import (
 from jax.tree_util import *
 import copy
 from jax import jit, grad
+import gc
 from utils.profiler import profile
 
 
@@ -91,6 +92,7 @@ class PseudoArcLenContinuation(Continuation):
                 predictor.get_secant_concat(),
             ]
             del predictor
+            gc.collect()
             corrector = ConstrainedCorrector(
                 optimizer=self.opt,
                 objective=self.objective,
@@ -107,3 +109,5 @@ class PseudoArcLenContinuation(Continuation):
 
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
+            del corrector
+            gc.collect()

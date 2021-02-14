@@ -3,11 +3,11 @@ author: Paul Bruillard, harsh
 """
 
 import jax.numpy as jnp
-from jax import random
-import numpy as np
-from typing import Any
-from utils.math_trees import *
+# from jax import random
 
+from utils.math_trees import *
+#import numpy as np
+from typing import Any
 
 def get_rotation_pytree(src: Any, dst: Any) -> Any:
     """
@@ -119,11 +119,18 @@ def get_rotation_array(src: Any, dst: Any)-> Any:
 
 if __name__ == "__main__":
     n = 5
-    key = random.PRNGKey(10)
-    k1, k2 = random.split(key, 2)
-    src = random.normal(k1, [n])
-    dst = random.normal(k2, [n])
-    R = get_rotation_pytree(src, dst)
-    transformed_vector = np.dot(R, src)
-    print(jnp.dot(transformed_vector, dst))
+    # key = random.PRNGKey(10)
+    # k1, k2 = random.split(key, 2)
+    # src = random.normal(k1, [n])
+    # dst = random.normal(k2, [n])
+    # R = get_rotation_pytree(src, dst)
+    # transformed_vector = np.dot(R, src)
+    # print(jnp.dot(transformed_vector, dst))
 
+    # n = 3
+    # src= np.array([0.0,0.0,1.0])
+    # dst = np.array([3.0,3.0,3.0])
+    # sample = np.array([1.0,2.0,0.0])
+    # R = get_rotation_array(src, dst)
+    # transformed_vector = np.dot(R, sample) + dst
+    # print(transformed_vector)

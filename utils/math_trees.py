@@ -37,6 +37,9 @@ def pytree_shape_array_equal(x, y):
 def pytree_zeros_like(x):
     return tree_util.tree_map(lambda arr: 0 * arr, x)
 
+def pytree_ones_like(x):
+    return tree_util.tree_map(lambda arr: 0 * arr +1, x)
+
 
 def pytree_element_add(x, s):
     return tree_util.tree_map(lambda a: a + s, x)

@@ -40,6 +40,7 @@ class PerturbedCorrecter(ConstrainedCorrector):
             compute_grad_fn
         )
         self._parc_vec = None
+        self.state_stack= dict()
         self.key = random.PRNGKey(key_state)
 
 
@@ -56,29 +57,30 @@ class PerturbedCorrecter(ConstrainedCorrector):
 
         sample = tree_map(
             lambda a: a + random.normal(self.key, a.shape),
-            pytree_zeros_like(self._state),
+            self._state,
         )
         z = pytree_zeros_like(self._bparam)
         sample_vec, sample_unravel = pytree_to_vec([sample, z])
 
         #transform sample to arc-plane
-        new_sample = np.dot(rotation_matrix, sample_vec) + 2*pytree_normalized(destination)
+        new_sample = np.dot(rotation_matrix, sample_vec) + 0.2*pytree_normalized(destination)
 
         # sample_vec to pytree
         new_sample = sample_unravel(new_sample)
-        self._state= new_sample[0]
-        self._bparam = new_sample[1]
 
-        state_stack = dict()
-        state_stack.update({"state": self._state})
-        state_stack.update({"bparam": self._bparam})
-        self._parc_vec = pytree_sub(state_stack, self._state_secant_c2)
+        # self._state= new_sample[0]
+        # self._bparam = new_sample[1]
+        self.state_stack.update({"state": new_sample[0]})
+        self.state_stack.update({"bparam": new_sample[1]})
+        self._parc_vec = pytree_sub(self.state_stack, self._state_secant_c2)
 
     def _evaluate_perturb(self):
         """Evaluate weather the perturbed vector is orthogonal to secant vector"""
         dot = pytree_dot(self._parc_vec, self._state_secant_vector)
         if math.isclose(dot, 0.0,  abs_tol=0.25):
             print(f"Perturb was near arc-plane. {dot}")
+            self._state = self.state_stack['state']
+            self._bparam = self.state_stack['bparam']
         else:
             print(f"Perturb was not on arc-plane.{dot}")
 

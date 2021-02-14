@@ -17,7 +17,8 @@ the critical points or fixed points and dumps them to  output file provided in h
 from src.continuation.creator.continuation_creator import ContinuationCreator
 from examples.poly_nn.simple_neural_network import SimpleNeuralNetwork
 from examples.conv_nn.conv_nn import ConvNeuralNetwork
-from examples.autoencoder.Autoencoder import PCATopologyAE
+from examples.autoencoder.autoencoder import PCATopologyAE
+from examples.random_network.random_01 import RandomExp
 from examples.conv_nn.resnet_50 import ResNet50Network
 from examples.pitchfork2d.vectror_pitchfork import PitchForkProblem, VectorPitchFork
 from examples.abstract_problem import ProblemWraper
@@ -26,12 +27,12 @@ import json
 #TODO: use **kwargs to reduce params
 
 if __name__ == "__main__":
-    HPARAMS_PATH = "examples/autoencoder/hparams.json"
+    HPARAMS_PATH = "examples/random_network/hparams.json"
 
     with open(HPARAMS_PATH, "r") as hfile:
         hparams = json.load(hfile)
 
-    problem = PCATopologyAE()
+    problem = RandomExp()
     problem = ProblemWraper(problem)
     if hparams["n_perturbs"] > 1:
         for perturb in range(hparams["n_perturbs"]):
