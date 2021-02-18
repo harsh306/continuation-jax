@@ -6,11 +6,14 @@ from src.continuation.arc_len_continuation import PseudoArcLenContinuation
 from src.continuation.perturbed_arc_len_continuation import (
     PerturbedPseudoArcLenContinuation,
 )
+from src.continuation.perturbed_fixed_arclen_continuation import (
+    PerturbedPseudoArcLenFixedContinuation,
+)
 
 
 class ContinuationCreator:
     """Continuation Factory to create the right objects on the fly.
-        TODO: Use **kwargs to reduce the size of the constructors.
+    TODO: Use **kwargs to reduce the size of the constructors.
     """
 
     def __init__(self, problem: ProblemWraper, hparams: Dict, key=0):
@@ -58,6 +61,23 @@ class ContinuationCreator:
             state, bparam = states[0], bparams[0]
             state_0, bparam_0 = states[1], bparams[1]
             return PerturbedPseudoArcLenContinuation(
+                state,
+                bparam,
+                state_0,
+                bparam_0,
+                counter=0,
+                objective=self.problem.objective,
+                dual_objective=self.problem.dual_objective,
+                lagrange_multiplier=self.hparams["lagrange_init"],
+                output_file=self.hparams["meta"]["output_dir"],
+                hparams=self.hparams,
+                key_state=self.key,
+            )
+        elif self.hparams["meta"]["method"] == "parc-fix-perturb":
+            states, bparams = self.problem.initial_values()
+            state, bparam = states[0], bparams[0]
+            state_0, bparam_0 = states[1], bparams[1]
+            return PerturbedPseudoArcLenFixedContinuation(
                 state,
                 bparam,
                 state_0,

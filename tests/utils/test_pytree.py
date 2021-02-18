@@ -26,7 +26,7 @@ class TestPytreeDot(TestPytree):
 
 class TestPytreeOnesLike(TestPytree):
     def test_dot(self):
-        self.assertEqual(pytree_array_equal(self.x1, pytree_ones_like(self.x)),True)
+        self.assertEqual(pytree_array_equal(self.x1, pytree_ones_like(self.x)), True)
 
 
 class TestPytreeSub(TestPytree):

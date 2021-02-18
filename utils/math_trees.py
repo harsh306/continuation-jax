@@ -31,21 +31,34 @@ def pytree_array_equal(x, y):
 
 
 def pytree_shape_array_equal(x, y):
-    is_eq = tree_util.tree_multimap(lambda arr1, arr2: (arr1.shape==arr2.shape), x, y)
+    is_eq = tree_util.tree_multimap(lambda arr1, arr2: (arr1.shape == arr2.shape), x, y)
     return tree_util.tree_reduce(operator.and_, is_eq)
+
 
 def pytree_zeros_like(x):
     return tree_util.tree_map(lambda arr: 0 * arr, x)
 
+
 def pytree_ones_like(x):
-    return tree_util.tree_map(lambda arr: 0 * arr +1, x)
+    return tree_util.tree_map(lambda arr: 0 * arr + 1, x)
 
 
 def pytree_element_add(x, s):
     return tree_util.tree_map(lambda a: a + s, x)
 
+
+def pytree_element_mul(x, s):
+    return tree_util.tree_map(lambda a: a * s, x)
+
+
 def pytree_to_vec(x):
     return flatten_util.ravel_pytree(x)
 
+
 def pytree_normalized(x):
     return tree_util.tree_map(lambda a: a / l2_norm(x), x)
+
+
+def pytree_relative_error(x, y):
+    re = (l2_norm(pytree_sub(x, y))) / l2_norm(x)
+    return re

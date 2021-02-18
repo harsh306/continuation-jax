@@ -24,15 +24,15 @@ from examples.pitchfork2d.vectror_pitchfork import PitchForkProblem, VectorPitch
 from examples.abstract_problem import ProblemWraper
 import json
 
-#TODO: use **kwargs to reduce params
+# TODO: use **kwargs to reduce params
 
 if __name__ == "__main__":
-    HPARAMS_PATH = "examples/random_network/hparams.json"
+    HPARAMS_PATH = "examples/pitchfork2d/hparams.json"
 
     with open(HPARAMS_PATH, "r") as hfile:
         hparams = json.load(hfile)
 
-    problem = RandomExp()
+    problem = PitchForkProblem()
     problem = ProblemWraper(problem)
     if hparams["n_perturbs"] > 1:
         for perturb in range(hparams["n_perturbs"]):

@@ -24,28 +24,30 @@ class PitchForkProblem(AbstractProblem):
             )
         return result
 
-    @staticmethod
-    def initial_values() -> Tuple:
+    def initial_values(self) -> Tuple:
         """
         PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
         :return:
         """
+        # states = [
+        #     [np.array([0.05])],
+        #     [np.array([0.01])],
+        # ]
         states = [
             [np.array([-1.734])],
-            [np.array([-1.732])],
+            [np.array([-1.632])],
         ]
-        bparams = [[np.array([-3.0])], [np.array([-2.9])]]
+        bparams = [[np.array([-3.0])], [np.array([-3.2])]]
 
         return states, bparams
 
-    @staticmethod
-    def initial_value() -> Tuple:
+    def initial_value(self) -> Tuple:
         """
         PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
         :return:
         """
-        state = [np.array([-1.734])]
-        bparam = [np.array([-3.0])]
+        state = [np.array([0.04])]
+        bparam = [np.array([3.0])]
         return state, bparam
 
 
@@ -84,8 +86,7 @@ class VectorPitchFork(AbstractProblem):
             )
         return result
 
-    @staticmethod
-    def initial_value() -> Tuple:
+    def initial_value(self) -> Tuple:
         """
         PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
         :return:
@@ -94,8 +95,7 @@ class VectorPitchFork(AbstractProblem):
         bparam = [np.array([-3.0])]
         return state, bparam
 
-    @staticmethod
-    def initial_values():
+    def initial_values(self):
         """
         PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
         :return:

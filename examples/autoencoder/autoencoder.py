@@ -55,6 +55,7 @@ def HomotopyDense(out_dim, W_init=zeros, b_init=zeros):
         return homotopy_activation(
             dense, alpha=bparam, activation_func=kwargs.get("activation_func")
         )
+
     return init_fun, apply_fun
 
 

@@ -4,7 +4,7 @@ from jax.experimental.optimizers import l2_norm
 from jax.experimental.stax import Dense, elementwise, Identity, Sigmoid
 from jax import random
 import jax.numpy as np
-from jax.experimental import  stax
+from jax.experimental import stax
 import numpy.random as npr
 from utils.custom_nn import *
 
@@ -24,11 +24,11 @@ def generate_data_01():
     init_func, predict_func = stax.serial(
         HomotopyDense(out_dim=4, W_init=glorot_uniform(), b_init=normal()),
         HomotopyDense(out_dim=1, W_init=glorot_uniform(), b_init=normal()),
-        Sigmoid
+        Sigmoid,
     )
 
     ae_shape, ae_params = init_func(random.PRNGKey(0), input_shape)
-    #assert ae_shape == input_shape
+    # assert ae_shape == input_shape
     bparam = [np.array([0.0], dtype=np.float64)]
     logits = predict_func(ae_params, inputs, bparam=bparam[0], activation_func=sigmoid)
     loss = np.mean((np.subtract(logits, logits))) + l2_norm(ae_params) + l2_norm(bparam)
@@ -36,8 +36,7 @@ def generate_data_01():
     return inputs, logits, ae_params, bparam, init_func, predict_func
 
 
-if __name__ == '__main__':
-    x,y, param, bparam, _, _ = generate_data_01()
+if __name__ == "__main__":
+    x, y, param, bparam, _, _ = generate_data_01()
     print(x.shape, y.shape)
     print(y)
-

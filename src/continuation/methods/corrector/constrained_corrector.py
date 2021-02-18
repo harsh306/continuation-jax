@@ -18,6 +18,7 @@ class ConstrainedCorrector(Corrector):
         compute_min_grad_fn,
         compute_max_grad_fn,
         compute_grad_fn,
+        hparams,
     ):
         self.concat_states = concat_states
         self._state = None
@@ -30,9 +31,9 @@ class ConstrainedCorrector(Corrector):
         self._state_secant_vector = None
         self._state_secant_c2 = None
         self.delta_s = delta_s
-        self.warmup_period = 1
-        self.ascent_period = 1
-        self.descent_period = 1
+        self.warmup_period = hparams["warmup_period"]
+        self.ascent_period = hparams["ascent_period"]
+        self.descent_period = hparams["descent_period"]
         self.compute_min_grad_fn = compute_min_grad_fn
         self.compute_max_grad_fn = compute_max_grad_fn
         self.compute_grad_fn = compute_grad_fn

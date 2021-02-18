@@ -5,7 +5,7 @@ from jax.tree_util import tree_map
 from jax.nn import sigmoid
 import jax.numpy as np
 
-inputs, outputs, param, bparam , init_fun, predict_fun = generate_data_01()
+inputs, outputs, param, bparam, init_fun, predict_fun = generate_data_01()
 
 
 class RandomExp(AbstractProblem):

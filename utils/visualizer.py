@@ -5,11 +5,26 @@ import jsonlines
 from jax.experimental.optimizers import l2_norm
 from jax.tree_util import *
 from jax import flatten_util
+import numpy as onp
 from utils.math_trees import *
 from typing import Tuple
 
+"""
+cmaps['Sequential'] = [
+            'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+            'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+            'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']
+            
 
-def pick_array(data: list, start:int = 0, end:int = 1) -> Tuple:
+cmaps['Diverging'] = [
+            'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
+            'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']
+            
+plt.scatter(y, x, c=z, cmap='gray_r')
+"""
+
+
+def pick_array(data: list, start: int = 0, end: int = 1) -> Tuple:
     """
     Pick one or more element from params to be used in plot
     Args:
@@ -25,6 +40,7 @@ def pick_array(data: list, start:int = 0, end:int = 1) -> Tuple:
     for k in range(len(data)):
         param.append(data[k][0][start:end])
         bparam.append(data[k][1][0])
+    print(param, bparam)
     return param, bparam
 
 
@@ -39,8 +55,8 @@ def coine_data_transform(data) -> Tuple:
     """
     params = []
     bparam = []
-    for k in range(len(data)-1):
-        params.append(pytree_dot(data[k][0], data[k+1][0]))
+    for k in range(len(data) - 1):
+        params.append(pytree_dot(data[k][0], data[k + 1][0]))
         bparam.append(data[k][1][0])
     return params, bparam
 
@@ -61,12 +77,17 @@ def norm_data_transform(data) -> Tuple:
         bparam.append(data[k][1][0])
     return params, bparam
 
+
 def read_data(path):
     data = []
     with jsonlines.open(path) as reader:
         for obj in reader.iter(type=list, skip_invalid=True, skip_empty=True):
-            data.append([flatten_util.ravel_pytree(obj[0])[0],
-                           flatten_util.ravel_pytree(obj[1])[0]])
+            data.append(
+                [
+                    flatten_util.ravel_pytree(obj[0])[0],
+                    flatten_util.ravel_pytree(obj[1])[0],
+                ]
+            )
     return data
 
 
@@ -74,24 +95,40 @@ def read_data(path):
 def export():
     pass
 
+
 # TODO
 def perturbplot():
     pass
 
-if __name__ == '__main__':
+
+def get_loss(thetas):
+    z = onp.random.normal(1.0, 1.0, len(thetas))
+    return z
+
+
+if __name__ == "__main__":
 
     for i in range(3):
-        path = f'/opt/ml/output/random_01/version_{i}.json'
+        path = f"/opt/ml/output/version_{i}.json"
         data = read_data(path)
-        y, x = coine_data_transform(data)
-        plt.plot(y, x)
+        y, x = pick_array(data)
+        plt.plot(x, y)
+
     plt.show()
+    plt.clf()
+    # for i in range(3):
+    #     path = f"/opt/ml/output/version_{i}.json"
+    #     data = read_data(path)
+    #     y, x = coine_data_transform(data)
+    #     plt.plot(y, x)
+    #
+    # plt.show()
 
     for i in range(3):
-        path = f'/opt/ml/output/random_01/version_{i}.json'
+        path = f"/opt/ml/output/version_{i}.json"
         data = read_data(path)
         y, x = norm_data_transform(data)
-        plt.plot(y, x)
+        plt.plot(x, y)
+
     plt.show()
-
-
+    plt.clf()

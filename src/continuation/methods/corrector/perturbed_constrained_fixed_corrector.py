@@ -12,7 +12,7 @@ import math
 import numpy.random as npr
 
 
-class PerturbedCorrecter(ConstrainedCorrector):
+class PerturbedFixedCorrecter(ConstrainedCorrector):
     """Minimize the objective using gradient based method along with some constraint and noise"""
 
     def __init__(
@@ -136,12 +136,8 @@ class PerturbedCorrecter(ConstrainedCorrector):
         self._evaluate_perturb()
         # super().correction_step()
 
-        for k in range(self.warmup_period):
-            grads = self.compute_grad_fn(self._state, self._bparam)
-            self._state = self.opt.update_params(self._state, grads[0])
-
-        for k in range(self.ascent_period):
-            lagrange_grads = self.compute_max_grad_fn(
+        for j in range(self.descent_period):
+            state_grads, bpram_grads = self.compute_min_grad_fn(
                 self._state,
                 self._bparam,
                 self._lagrange_multiplier,
@@ -149,19 +145,7 @@ class PerturbedCorrecter(ConstrainedCorrector):
                 self._state_secant_vector,
                 self.delta_s,
             )
-            self._lagrange_multiplier = self.ascent_opt.update_params(
-                self._lagrange_multiplier, lagrange_grads[0]
-            )
-            for j in range(self.descent_period):
-                state_grads, bpram_grads = self.compute_min_grad_fn(
-                    self._state,
-                    self._bparam,
-                    self._lagrange_multiplier,
-                    self._state_secant_c2,
-                    self._state_secant_vector,
-                    self.delta_s,
-                )
-                self._bparam = self.opt.update_params(self._bparam, bpram_grads)
-                self._state = self.opt.update_params(self._state, state_grads)
+            self._bparam = self.opt.update_params(self._bparam, bpram_grads)
+            self._state = self.opt.update_params(self._state, state_grads)
 
         return self._state, self._bparam

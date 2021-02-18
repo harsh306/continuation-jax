@@ -11,7 +11,7 @@ import copy
 from utils.profiler import profile
 import gc
 
-#TODO: make **kwargs availible
+# TODO: make **kwargs availible
 
 
 class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
@@ -66,16 +66,14 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
             concat_states = [
                 (self._state_wrap.state, self._bparam_wrap.state),
                 (self._prev_state, self._prev_bparam),
+                self.prev_secant_direction,
             ]
 
             predictor = SecantPredictor(
                 concat_states=concat_states, delta_s=self._delta_s, omega=self._omega
             )
-
-            self._prev_state = copy.deepcopy(self._state_wrap.state)
-            self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)
-
             predictor.prediction_step()
+            self.prev_secant_direction = predictor.secant_direction
 
             concat_states = [
                 predictor.state,
@@ -97,7 +95,13 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 compute_min_grad_fn=self.compute_min_grad_fn,
                 compute_max_grad_fn=self.compute_max_grad_fn,
                 compute_grad_fn=self.compute_grad_fn,
+                hparams=self.hparams,
+                pred_state=[self._state_wrap.state, self._bparam_wrap.state],
+                pred_prev_state=[self._state_wrap.state, self._bparam_wrap.state],
             )
+            self._prev_state = copy.deepcopy(self._state_wrap.state)
+            self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)
+
             state, bparam = corrector.correction_step()
 
             self._state_wrap.state = state

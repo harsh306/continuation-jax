@@ -63,7 +63,7 @@ from typing import Any
 #     return R
 
 
-def get_rotation_array(src: Any, dst: Any)-> Any:
+def get_rotation_array(src: Any, dst: Any) -> Any:
     """
     Takes two n-dimensional vectors and returns an
     nxn rotation matrix mapping src to dst.
@@ -76,9 +76,9 @@ def get_rotation_array(src: Any, dst: Any)-> Any:
         a, b = R.shape
         if a != b:
             raise ValueError("R must be square")
-        if (
-            not np.isclose(np.abs(np.eye(a) - np.dot(R, R.T)).max(), 0)
-        ) or (not np.isclose(np.abs(np.eye(a) - np.dot(R.T, R)).max(), 0)):
+        if (not np.isclose(np.abs(np.eye(a) - np.dot(R, R.T)).max(), 0)) or (
+            not np.isclose(np.abs(np.eye(a) - np.dot(R.T, R)).max(), 0)
+        ):
             raise ValueError("R is not diagonal")
 
     def __normalize(x):
@@ -92,15 +92,11 @@ def get_rotation_array(src: Any, dst: Any)-> Any:
     y = __normalize(dst.copy())
 
     # compute angle between x and y in their spanning space
-    theta = np.arccos(
-        np.dot(x, y)
-    )  # they are normalized so there is no denominator
+    theta = np.arccos(np.dot(x, y))  # they are normalized so there is no denominator
     if np.isclose(theta, 0):
         raise ValueError("x and y are co-linear")
     # construct the 2d rotation matrix connecting x to y in their spanning space
-    R = np.array(
-        [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
-    )
+    R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
     __assert_rotation(R)
     # get projections onto Span<x,y> and its orthogonal complement
     u = x
@@ -128,10 +124,10 @@ if __name__ == "__main__":
     # transformed_vector = np.dot(R, src)
     # print(jnp.dot(transformed_vector, dst))
 
-    n = 3
-    src= np.array([0.0,0.0,1.0])
-    dst = np.array([13.0,15.0,13.0])
-    sample = np.array([1.0,1.0,0.0])
+    n = 6
+    src = np.hstack([np.zeros(n - 1), 1.0])
+    dst = 4 * np.ones(n)
+    sample = np.hstack([np.ones(n - 1), 0.0])
     R = get_rotation_array(src, dst)
     transformed_vector = np.dot(R, sample) + dst
     print(transformed_vector)

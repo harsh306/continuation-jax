@@ -5,6 +5,7 @@ from jax.experimental.stax import Dense, elementwise, Identity
 from jax import random
 import jax.numpy as np
 
+
 def pca_orthogonal(v, dtype=np.float32):
     def init(key, shape, dtype=dtype):
         return v[: shape[0], : shape[1]]
@@ -35,12 +36,15 @@ def HomotopyDense(out_dim, W_init=zeros, b_init=zeros):
         return homotopy_activation(
             dense, alpha=bparam, activation_func=kwargs.get("activation_func")
         )
+
     return init_fun, apply_fun
 
 
 def LambdaIdentity():
-  """Layer construction function for an identity layer."""
-  init_fun = lambda rng, input_shape: (input_shape, ())
-  apply_fun = lambda params, inputs, **kwargs: inputs * kwargs.get('bparams')
-  return init_fun, apply_fun
+    """Layer construction function for an identity layer."""
+    init_fun = lambda rng, input_shape: (input_shape, ())
+    apply_fun = lambda params, inputs, **kwargs: inputs * kwargs.get("bparams")
+    return init_fun, apply_fun
+
+
 LambdaIdentity = LambdaIdentity()
