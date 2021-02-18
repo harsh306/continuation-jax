@@ -29,15 +29,15 @@ class PitchForkProblem(AbstractProblem):
         PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
         :return:
         """
-        # states = [
-        #     [np.array([0.05])],
-        #     [np.array([0.01])],
-        # ]
         states = [
-            [np.array([-1.734])],
-            [np.array([-1.632])],
+            [np.array([0.05])],
+            [np.array([0.03])],
         ]
-        bparams = [[np.array([-3.0])], [np.array([-3.2])]]
+        # states = [
+        #     [np.array([-1.734])],
+        #     [np.array([-1.632])],
+        # ]
+        bparams = [[np.array([3.0])], [np.array([3.12])]]
 
         return states, bparams
 

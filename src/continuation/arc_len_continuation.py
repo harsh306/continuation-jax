@@ -1,6 +1,6 @@
 from src.continuation.base_continuation import Continuation
 from src.continuation.states.state_variables import StateVariable, StateWriter
-from src.optimizer.optimizer import GDOptimizer, GAOptimizer
+from src.optimizer.optimizer import GDOptimizer, GAOptimizer, AdamOptimizer
 from src.continuation.methods.predictor.secant_predictor import SecantPredictor
 from src.continuation.methods.corrector.constrained_corrector import (
     ConstrainedCorrector,

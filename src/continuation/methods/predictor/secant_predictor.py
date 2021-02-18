@@ -94,7 +94,7 @@ class SecantPredictor(Predictor):
         """
         self._assign_states()
         self._compute_secant()
-        self._choose_direction()
+        #self._choose_direction()
         self._state = tree_multimap(
             lambda a, b: a + self.omega * b, self._state, self.secant_direction["state"]
         )

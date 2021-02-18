@@ -98,6 +98,7 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
                 hparams=self.hparams,
                 pred_state=[self._state_wrap.state, self._bparam_wrap.state],
                 pred_prev_state=[self._state_wrap.state, self._bparam_wrap.state],
+                counter=self.continuation_steps
             )
             self._prev_state = copy.deepcopy(self._state_wrap.state)
             self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)

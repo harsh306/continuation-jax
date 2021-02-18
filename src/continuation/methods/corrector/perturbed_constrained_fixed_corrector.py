@@ -31,6 +31,7 @@ class PerturbedFixedCorrecter(ConstrainedCorrector):
         hparams,
         pred_state,
         pred_prev_state,
+        counter
     ):
         super().__init__(
             optimizer,
@@ -51,6 +52,7 @@ class PerturbedFixedCorrecter(ConstrainedCorrector):
         self.pred_state = pred_state
         self.pred_prev_state = pred_prev_state
         self.sphere_radius = hparams["sphere_radius"]
+        self.counter = counter
 
     def _perform_perturb_by_projection(self):
         ### Secant normal
@@ -76,9 +78,10 @@ class PerturbedFixedCorrecter(ConstrainedCorrector):
         point_on_plane = u + pytree_sub(
             tmp, proj_of_u_on_n
         )  ## state= self.pred_state + n
+        inv_vec = np.array([-1.0, 1.0])
         parc = pytree_element_mul(
             pytree_normalized(pytree_sub(point_on_plane, tmp)),
-            npr.choice(np.array([-1.0, 1.0])),
+            inv_vec[(self.counter%2)],
         )
         point_on_plane_2 = tmp + self.sphere_radius * parc
         new_sample = sample_unravel(point_on_plane_2)
