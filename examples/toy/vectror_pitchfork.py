@@ -13,6 +13,7 @@ class PitchForkProblem(AbstractProblem):
     def __init__(self):
         self.inputs = None
         self.outputs = None
+        self.HPARAMS_PATH = "examples/toy/hparams.json"
 
     @staticmethod
     def objective(params: list, bparam: list) -> float:
@@ -61,6 +62,7 @@ class VectorPitchFork(AbstractProblem):
         """
         self.inputs = 0.0
         self.outputs = 0.0
+        self.HPARAMS_PATH = "examples/toy/hparams.json"
 
     @staticmethod
     def objective(state, bparam):
@@ -100,12 +102,24 @@ class VectorPitchFork(AbstractProblem):
         PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
         :return:
         """
+        # states = [
+        #     [(np.array([-1.734]), np.array([-1.734]))],
+        #     [(np.array([-1.732]), np.array([-1.732]))],
+        # ]
+
+        # bparams = [[np.array([-3.0])], [np.array([-2.9])]]
+        # states = [
+        #     [np.array([-1.734])],
+        #     [np.array([-1.632])],
+        # ]
+
         states = [
-            [(np.array([-1.734]), np.array([-1.734]))],
-            [(np.array([-1.732]), np.array([-1.732]))],
+            [(np.array([0.05]), np.array([0.02]))],
+            [(np.array([0.05]), np.array([0.02]))],
         ]
 
-        bparams = [[np.array([-3.0])], [np.array([-2.9])]]
+        bparams = [[np.array([3.0])], [np.array([3.12])]]
+
         return states, bparams
 
 

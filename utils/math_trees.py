@@ -60,5 +60,7 @@ def pytree_normalized(x):
 
 
 def pytree_relative_error(x, y):
-    re = (l2_norm(pytree_sub(x, y))) / l2_norm(x)
-    return re
+    partial_error = tree_util.tree_multimap(
+        lambda a, b: l2_norm(pytree_sub(a, b)) / (l2_norm(a) + 1e-5), x, y
+    )
+    return tree_util.tree_reduce(lax.add, partial_error)

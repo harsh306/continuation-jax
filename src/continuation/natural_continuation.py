@@ -9,6 +9,7 @@ from jax.tree_util import *
 import gc
 from utils.profiler import profile
 from jax import jit, grad
+import jax.numpy as np
 
 
 class NaturalContinuation(Continuation):
@@ -16,19 +17,21 @@ class NaturalContinuation(Continuation):
 
     Composed of natural predictor and unconstrained corrector"""
 
-    def __init__(self, state, bparam, counter, objective, output_file, hparams):
+    def __init__(self, state, bparam, counter, objective, hparams):
         self._state_wrap = StateVariable(state, counter)
         self._bparam_wrap = StateVariable(bparam, counter)
         self.objective = objective
-        self.inputs = 0.0
-        self.outputs = 0.0
+        self.value_func = jit(self.objective)
+        self._value_wrap = StateVariable(self.objective(state, bparam), counter)
+        self.sw = None
+        self.hparams = hparams
         self.opt = OptimizerCreator(
             opt_string=hparams["meta"]["optimizer"], learning_rate=hparams["natural_lr"]
         ).get_optimizer()
         self.continuation_steps = hparams["continuation_steps"]
-        self.sw = None
-        self.output_file = output_file
-        self._delta_s = hparams["delta_s"]
+
+        self.output_file = hparams["meta"]["output_dir"]
+        self._delta_s = hparams["delta_bparams"]
         self.grad_fn = jit(grad(self.objective, argnums=[0]))
 
     @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
@@ -38,13 +41,19 @@ class NaturalContinuation(Continuation):
         A continuation strategy that defines how predictor and corrector components of the algorithm
         interact with the states of the mathematical system.
         """
-        self.sw = StateWriter(f"{self.output_file}/version.json")
-        for i in range(self.continuation_steps):
+        self.sw = StateWriter(f"{self.output_file[0]}/version.json")
 
+        for i in range(self.continuation_steps):
+            print(self._value_wrap.get_record(), self._bparam_wrap.get_record())
             self._state_wrap.counter = i
             self._bparam_wrap.counter = i
+            self._value_wrap.counter = i
             self.sw.write(
-                [self._state_wrap.get_record(), self._bparam_wrap.get_record()]
+                [
+                    self._state_wrap.get_record(),
+                    self._bparam_wrap.get_record(),
+                    self._value_wrap.get_record(),
+                ]
             )
 
             concat_states = [self._state_wrap.state, self._bparam_wrap.state]
@@ -61,10 +70,24 @@ class NaturalContinuation(Continuation):
                 objective=self.objective,
                 concat_states=concat_states,
                 grad_fn=self.grad_fn,
+                warmup_period=self.hparams["warmup_period"],
             )
             state, bparam = corrector.correction_step()
+
+            clip_lambda = lambda g: np.where(
+                (g > self.hparams["lambda_max"]), self.hparams["lambda_max"], g
+            )
+            bparam = tree_map(clip_lambda, bparam)
+            clip_lambda = lambda g: np.where(
+                (g < self.hparams["lambda_min"]), self.hparams["lambda_min"], g
+            )
+            bparam = tree_map(clip_lambda, bparam)
+
+            value = self.value_func(state, bparam)
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
-
+            self._value_wrap.state = value
             del corrector
             gc.collect()
+            if self._bparam_wrap.state[0] >= self.hparams["lambda_max"]:
+                break

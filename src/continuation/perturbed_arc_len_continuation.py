@@ -10,6 +10,7 @@ from jax.tree_util import *
 import copy
 from utils.profiler import profile
 import gc
+from utils.math_trees import pytree_relative_error
 
 # TODO: make **kwargs availible
 
@@ -28,8 +29,6 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
         counter,
         objective,
         dual_objective,
-        lagrange_multiplier,
-        output_file,
         hparams,
         key_state,
     ):
@@ -41,8 +40,6 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
             counter,
             objective,
             dual_objective,
-            lagrange_multiplier,
-            output_file,
             hparams,
         )
         self.key_state = key_state
@@ -59,8 +56,13 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
         for i in range(self.continuation_steps):
             self._state_wrap.counter = i
             self._bparam_wrap.counter = i
+            self._value_wrap.counter = i
             self.sw.write(
-                [self._state_wrap.get_record(), self._bparam_wrap.get_record()]
+                [
+                    self._state_wrap.get_record(),
+                    self._bparam_wrap.get_record(),
+                    self._value_wrap.get_record(),
+                ]
             )
 
             concat_states = [
@@ -70,7 +72,10 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
             ]
 
             predictor = SecantPredictor(
-                concat_states=concat_states, delta_s=self._delta_s, omega=self._omega
+                concat_states=concat_states,
+                delta_s=self._delta_s,
+                omega=self._omega,
+                net_spacing=self.hparams["net_spacing"],
             )
             predictor.prediction_step()
             self.prev_secant_direction = predictor.secant_direction
@@ -103,8 +108,12 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
             self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)
 
             state, bparam = corrector.correction_step()
-
+            value = self.value_func(state, bparam)
+            print(
+                "How far ....", pytree_relative_error(self._bparam_wrap.state, bparam)
+            )
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
+            self._value_wrap.state = value
             del corrector
             gc.collect()

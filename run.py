@@ -18,22 +18,26 @@ from src.continuation.creator.continuation_creator import ContinuationCreator
 from examples.poly_nn.simple_neural_network import SimpleNeuralNetwork
 from examples.conv_nn.conv_nn import ConvNeuralNetwork
 from examples.autoencoder.autoencoder import PCATopologyAE
+from examples.vae.autoencoder import TopologyVAE
+from examples.data_cont_ae.autoencoder import DataTopologyAE
 from examples.random_network.random_01 import RandomExp
 from examples.conv_nn.resnet_50 import ResNet50Network
-from examples.pitchfork2d.vectror_pitchfork import PitchForkProblem, VectorPitchFork
+from examples.toy.vectror_pitchfork import PitchForkProblem, VectorPitchFork
 from examples.abstract_problem import ProblemWraper
 import json
+from jax.config import config
+
+config.update("jax_debug_nans", True)
 
 # TODO: use **kwargs to reduce params
 
 if __name__ == "__main__":
-    HPARAMS_PATH = "examples/pitchfork2d/hparams.json"
+    problem = DataTopologyAE()
+    problem = ProblemWraper(problem)
 
-    with open(HPARAMS_PATH, "r") as hfile:
+    with open(problem.HPARAMS_PATH, "r") as hfile:
         hparams = json.load(hfile)
 
-    problem = PitchForkProblem()
-    problem = ProblemWraper(problem)
     if hparams["n_perturbs"] > 1:
         for perturb in range(hparams["n_perturbs"]):
             print(f"Running perturb {perturb}")

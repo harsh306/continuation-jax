@@ -16,16 +16,64 @@ def constant_2d(m, dtype=np.float32):
     Returns:
         init function
     """
+
     def init(key, shape, dtype=dtype):
-        return m[:shape[0], :shape[1]]
+        return m[: shape[0], : shape[1]]
+
+    return init
+
+
+def HomotopyDropout(rate, mode="train"):
+    """Layer construction function for a dropout layer with given rate."""
+
+    def init_fun(rng, input_shape):
+        return input_shape, ()
+
+    def apply_fun(params, inputs, **kwargs):
+        rng = kwargs.get("rng", None)
+        if rng is None:
+            msg = (
+                "Dropout layer requires apply_fun to be called with a PRNG key "
+                "argument. That is, instead of `apply_fun(params, inputs)`, call "
+                "it like `apply_fun(params, inputs, rng)` where `rng` is a "
+                "jax.random.PRNGKey value."
+            )
+            raise ValueError(msg)
+        if mode == "train":
+            hrate = kwargs.get("bparam") + rate
+            keep = random.bernoulli(rng, hrate, inputs.shape)
+            return np.where(keep, inputs, 0)
+        else:
+            return inputs
+
+    return init_fun, apply_fun
+
+
+def v_2d(m, dtype=np.float32):
+    """
+    Constant weight initializer
+    Args:
+        m: constant matrix
+        dtype: matrix dtype
+
+    Returns:
+        init function
+    """
+
+    def init(key, shape, dtype=dtype):
+        return m[: shape[0], : shape[1]]
+
     return init
 
 
 def constant(matrix, dtype=np.float32):
     def init(key, shape, dtype=dtype):
         if matrix.shape != shape:
-            raise ValueError(f"input array of shape {matrix.shape} is not equal to weight array of shape {shape}")
+            raise ValueError(
+                f"input array of shape {matrix.shape} is not equal to weight array of shape {shape}"
+            )
         return matrix
+
     return init
 
 
@@ -78,7 +126,7 @@ def HomotopyDense(out_dim, W_init=zeros, b_init=zeros):
 def LambdaIdentity():
     """Layer construction function for an identity layer."""
     init_fun = lambda rng, input_shape: (input_shape, ())
-    apply_fun = lambda params, inputs, **kwargs: inputs * kwargs.get("bparams")
+    apply_fun = lambda params, inputs, **kwargs: inputs * kwargs.get("bparam")
     return init_fun, apply_fun
 
 

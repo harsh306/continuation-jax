@@ -3,6 +3,7 @@ from typing import Dict
 import jsonlines
 import json
 import jax.numpy as np
+import glob, os
 
 
 class StateVariable:
@@ -45,10 +46,19 @@ class StateWriter:
 
     def __init__(self, file_name: str):
         """Create a file object"""
-
+        self.file_name = file_name
+        self._clear()
         self.writer = jsonlines.Writer(
             open(file_name, mode="a", encoding="utf-8"), dumps=NumpyEncoder().encode
         )
+
+    def _clear(self):
+        try:
+            for f in glob.glob(self.file_name):
+                os.remove(f)
+            print(f"Clearing previous runs of {self.file_name}")
+        except Exception as e:
+            print(f"No previos runs. {e}")
 
     def write(self, record: list):
         """Write/Append the record to the file."""

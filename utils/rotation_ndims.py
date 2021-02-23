@@ -3,7 +3,7 @@ author: Paul Bruillard, harsh
 """
 
 import jax.numpy as jnp
-
+from jax import lax
 from utils.math_trees import *
 from typing import Any
 
@@ -139,7 +139,8 @@ def projection_affine(n_dim, u, n, u_0):
     t3 = jnp.block([[I, -1 * u_0], [jnp.zeros(shape=(1, n_dim)), 1.0]])
     P = jnp.matmul(jnp.matmul(t1, t2), t3)
     pr = jnp.matmul(P, jnp.hstack([u, 1.0]))
-    return jnp.array(pr.tolist()[:n_dim])
+    pr = lax.slice(pr, [0], [n_dim])
+    return pr
 
 
 if __name__ == "__main__":

@@ -36,7 +36,6 @@ class ContinuationCreator:
                 bparam,
                 counter=0,
                 objective=self.problem.objective,
-                output_file=self.hparams["meta"]["output_dir"],
                 hparams=self.hparams,
             )
 
@@ -52,8 +51,6 @@ class ContinuationCreator:
                 counter=0,
                 objective=self.problem.objective,
                 dual_objective=self.problem.dual_objective,
-                lagrange_multiplier=self.hparams["lagrange_init"],
-                output_file=self.hparams["meta"]["output_dir"],
                 hparams=self.hparams,
             )
         elif self.hparams["meta"]["method"] == "parc-perturb":
@@ -68,8 +65,6 @@ class ContinuationCreator:
                 counter=0,
                 objective=self.problem.objective,
                 dual_objective=self.problem.dual_objective,
-                lagrange_multiplier=self.hparams["lagrange_init"],
-                output_file=self.hparams["meta"]["output_dir"],
                 hparams=self.hparams,
                 key_state=self.key,
             )
@@ -85,8 +80,6 @@ class ContinuationCreator:
                 counter=0,
                 objective=self.problem.objective,
                 dual_objective=self.problem.dual_objective,
-                lagrange_multiplier=self.hparams["lagrange_init"],
-                output_file=self.hparams["meta"]["output_dir"],
                 hparams=self.hparams,
                 key_state=self.key,
             )

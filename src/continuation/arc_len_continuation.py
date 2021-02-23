@@ -27,8 +27,6 @@ class PseudoArcLenContinuation(Continuation):
         counter,
         objective,
         dual_objective,
-        lagrange_multiplier,
-        output_file,
         hparams,
     ):
         # states
@@ -42,6 +40,11 @@ class PseudoArcLenContinuation(Continuation):
         # objectives
         self.objective = objective
         self.dual_objective = dual_objective
+        self.value_func = jit(self.objective)
+
+        self.hparams = hparams
+
+        self._value_wrap = StateVariable(self.objective(state, bparam), counter)
 
         # optimizer
         self.opt = GDOptimizer(learning_rate=hparams["natural_lr"])
@@ -49,12 +52,12 @@ class PseudoArcLenContinuation(Continuation):
 
         # every step hparams
         self.continuation_steps = hparams["continuation_steps"]
-        self._lagrange_multiplier = lagrange_multiplier
-        self.hparams = hparams
+        self._lagrange_multiplier = hparams["lagrange_init"]
+
         self._delta_s = hparams["delta_s"]
         self._omega = hparams["omega"]
 
-        # grad functions
+        # grad functions # should be pure functional
         self.compute_min_grad_fn = jit(grad(self.dual_objective, [0, 1]))
         self.compute_max_grad_fn = jit(grad(self.dual_objective, [2]))
         self.compute_grad_fn = jit(grad(self.objective, [0]))
@@ -63,7 +66,7 @@ class PseudoArcLenContinuation(Continuation):
         self.sw = None
         self.state_tree_def = None
         self.bparam_tree_def = None
-        self.output_file = output_file
+        self.output_file = hparams["meta"]["output_dir"]
         self.prev_secant_direction = None
 
     @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
@@ -78,8 +81,13 @@ class PseudoArcLenContinuation(Continuation):
 
             self._state_wrap.counter = i
             self._bparam_wrap.counter = i
+            self._value_wrap.counter = i
             self.sw.write(
-                [self._state_wrap.get_record(), self._bparam_wrap.get_record()]
+                [
+                    self._state_wrap.get_record(),
+                    self._bparam_wrap.get_record(),
+                    self._value_wrap.get_record(),
+                ]
             )
 
             concat_states = [
@@ -89,7 +97,10 @@ class PseudoArcLenContinuation(Continuation):
             ]
 
             predictor = SecantPredictor(
-                concat_states=concat_states, delta_s=self._delta_s, omega=self._omega
+                concat_states=concat_states,
+                delta_s=self._delta_s,
+                omega=self._omega,
+                net_spacing=self.hparams["net_spacing"],
             )
             predictor.prediction_step()
             self.prev_secant_direction = predictor.secant_direction
@@ -118,8 +129,9 @@ class PseudoArcLenContinuation(Continuation):
                 hparams=self.hparams,
             )
             state, bparam = corrector.correction_step()
-
+            value = self.value_func(state, bparam)
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
+            self._value_wrap.state = value
             del corrector
             gc.collect()

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from jax.tree_util import *
 import jax.numpy as np
-from jax import grad
+from jax import grad, jit
 from jax.experimental.optimizers import l2_norm
 from jax import lax
 from utils.math_trees import pytree_dot, pytree_sub
@@ -28,6 +28,7 @@ class ProblemWraper:
         self.objective = self.problem_object.objective
         self.initial_value_func = self.problem_object.initial_value
         self.initial_values_func = self.problem_object.initial_values
+        self.HPARAMS_PATH = problem_object.HPARAMS_PATH
 
     def dual_objective(
         self,
@@ -41,8 +42,10 @@ class ProblemWraper:
         return np.mean(
             self.objective(params, bparam)
             + (
-                lagrange_multiplier
-                * self.normal_vector(params, bparam, c2, secant, delta_s)
+                np.multiply(
+                    lagrange_multiplier,
+                    self.normal_vector(params, bparam, c2, secant, delta_s),
+                )
             )
         )
 
@@ -58,19 +61,11 @@ class ProblemWraper:
     ) -> float:
         """"""
         result = 0.0
-        # params, _ = tree_flatten(params) # TODO: remove flatten
-        # bparams, _ = tree_flatten(bparams)
-        # state_stack = []  # TODO: reove stack list
-        # state_stack.extend(params)
-        # state_stack.extend(bparams)
         state_stack = dict()
         state_stack.update({"state": params})
         state_stack.update({"bparam": bparams})
         parc_vec = pytree_sub(state_stack, secant_guess)
-        # parc_vec = [i - j for (i, j) in zip(state_stack, secant_guess)] # tree_multimap
         result += pytree_dot(parc_vec, secant_vec)
-        # print(parc_vec, secant_vec)
-        # result += np.dot(np.asarray(parc_vec).reshape(-1), np.asarray(secant_vec).reshape(-1))
         return result - delta_s
 
     def objective_grad(self, params, bparam):  # TODO: JIT?

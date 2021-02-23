@@ -4,12 +4,12 @@ from jax.experimental import stax
 from jax.nn.initializers import zeros, ones
 from jax.nn import sigmoid, relu, hard_tanh
 from jax.experimental.optimizers import l2_norm
-from jax.experimental.stax import Dense, elementwise, Identity
+from jax.experimental.stax import Dense, elementwise, Identity, Dropout
 import numpy.random as npr
 from jax import random
 from examples.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
-from utils.custom_nn import constant_2d, HomotopyDense, v_2d
+from utils.custom_nn import constant_2d, HomotopyDense, v_2d, HomotopyDropout
 from utils.datasets import mnist
 
 batch_size = 1000
@@ -32,47 +32,44 @@ def synth_batches():
 train_images, _, _, _ = mnist(permute_train=True)
 del _
 inputs = train_images[:batch_size]
-# print(inputs.shape)
 
-u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
-I = np.eye(v_t.shape[-1])
-I_add = npr.normal(0.0, 0.002, size=I.shape)
-noisy_I = I + I_add
+# u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
+# I = np.eye(v_t.shape[-1])
+# I_add = npr.normal(0.0, 0.002, size=I.shape)
+# noisy_I = I + I_add
 
-
-# init_fun, predict_fun = stax.serial(
-#     HomotopyDense(out_dim=512, W_init=constant_2d(v_t.T), b_init=zeros),
-#     HomotopyDense(out_dim=2, W_init=constant_2d(noisy_I), b_init=zeros),
-#     HomotopyDense(out_dim=4, W_init=constant_2d(noisy_I), b_init=zeros),
-#     Dense(out_dim=input_shape[-1], W_init=constant_2d(v_t), b_init=zeros),
-# )
 
 init_fun, predict_fun = stax.serial(
-    HomotopyDense(out_dim=4, W_init=v_2d(v_t.T), b_init=zeros),
-    HomotopyDense(out_dim=2, W_init=constant_2d(I), b_init=zeros),
-    HomotopyDense(out_dim=4, W_init=constant_2d(I), b_init=zeros),
-    Dense(out_dim=input_shape[-1], W_init=v_2d(v_t), b_init=zeros),
+    Dropout(rate=0.9),
+    Dense(4, b_init=zeros),
+    Dense(2, b_init=zeros),
+    Dense(4, b_init=zeros),
+    Dense(out_dim=input_shape[-1], b_init=zeros),
 )
 
 
-class PCATopologyAE(AbstractProblem):
+class DataTopologyAE(AbstractProblem):
     def __init__(self):
-        self.HPARAMS_PATH = "examples/autoencoder/hparams.json"
+        self.HPARAMS_PATH = "examples/data_cont_ae/hparams.json"
 
     @staticmethod
     def objective(params, bparam) -> float:
+        key = random.PRNGKey(0)
         logits = predict_fun(
-            params, inputs, bparam=bparam[0], activation_func=hard_tanh
+            params, inputs, bparam=bparam[0], activation_func=sigmoid, rng=key
         )
-        loss = np.mean(np.square((np.subtract(logits, inputs))))
-        loss += 0.1 * (l2_norm(params) + l2_norm(bparam))
+        keep = random.bernoulli(key, bparam[0], inputs.shape)
+
+        inputs_d = np.where(keep, inputs, 0)
+
+        loss = np.mean(np.square((np.subtract(logits, inputs_d))))
+        # loss += 0.1*(l2_norm(params) + l2_norm(bparam))
         return loss
 
     def initial_value(self):
         ae_shape, ae_params = init_fun(random.PRNGKey(0), input_shape)
-        # print(ae_shape)
         assert ae_shape == input_shape
-        bparam = [np.array([0.01], dtype=np.float64)]
+        bparam = [np.array([0.001], dtype=np.float64)]
         return ae_params, bparam
 
     def initial_values(self):
@@ -85,7 +82,7 @@ class PCATopologyAE(AbstractProblem):
 
 
 if __name__ == "__main__":
-    problem = PCATopologyAE()
+    problem = DataTopologyAE()
     ae_params, bparams = problem.initial_value()
     loss = problem.objective(ae_params, bparams)
     print(loss)

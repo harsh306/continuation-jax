@@ -4,12 +4,13 @@ from utils.math_trees import *
 
 
 class SecantPredictor(Predictor):
-    def __init__(self, concat_states, delta_s, omega):
+    def __init__(self, concat_states, delta_s, omega, net_spacing):
         super().__init__(concat_states)
         self._prev_state = None
         self._prev_bparam = None
         self.delta_s = delta_s
         self.omega = omega
+        self.net_spacing = net_spacing
         self.secantvar_state = None
         self.secantvar_bparam = None
         self.secant_direction = dict()
@@ -81,11 +82,17 @@ class SecantPredictor(Predictor):
     def _compute_secant(self):
         """Secant computation for PyTree"""
         self.secant_direction.update(
-            {"state": pytree_sub(self._state, self._prev_state)}
+            {
+                "state": pytree_element_mul(
+                    pytree_sub(self._state, self._prev_state), self.net_spacing
+                )
+            }
         )
+
         self.secant_direction.update(
             {"bparam": pytree_sub(self._bparam, self._prev_bparam)}
         )
+
         self.secant_direction = pytree_normalized(self.secant_direction)
 
     def prediction_step(self):
@@ -94,7 +101,7 @@ class SecantPredictor(Predictor):
         """
         self._assign_states()
         self._compute_secant()
-        #self._choose_direction()
+        # self._choose_direction()
         self._state = tree_multimap(
             lambda a, b: a + self.omega * b, self._state, self.secant_direction["state"]
         )
@@ -103,7 +110,6 @@ class SecantPredictor(Predictor):
             self._bparam,
             self.secant_direction["bparam"],
         )
-        print(self._state, self.bparam)
 
     def get_secant_vector_concat(self):
         """Concatenated secant vector.
