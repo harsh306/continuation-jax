@@ -3,6 +3,7 @@ from src.continuation.arc_len_continuation import PseudoArcLenContinuation
 from src.continuation.states.state_variables import StateVariable, StateWriter
 from src.optimizer.optimizer import GDOptimizer
 from src.continuation.methods.predictor.secant_predictor import SecantPredictor
+from jax.experimental.optimizers import l2_norm
 from src.continuation.methods.corrector.perturbed_constrained_corrector import (
     PerturbedCorrecter,
 )
@@ -54,6 +55,7 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
         self.sw = StateWriter(f"{self.output_file}/version_{self.key_state}.json")
 
         for i in range(self.continuation_steps):
+            print(self._value_wrap.get_record(), self._bparam_wrap.get_record())
             self._state_wrap.counter = i
             self._bparam_wrap.counter = i
             self._value_wrap.counter = i
@@ -75,17 +77,20 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 concat_states=concat_states,
                 delta_s=self._delta_s,
                 omega=self._omega,
-                net_spacing=self.hparams["net_spacing"],
+                net_spacing_param=self.hparams["net_spacing_param"],
+                net_spacing_bparam=self.hparams["net_spacing_bparam"],
+                hparams=self.hparams
             )
             predictor.prediction_step()
             self.prev_secant_direction = predictor.secant_direction
-
+            self.hparams['sphere_radius'] = 0.005 * self.hparams['omega'] * l2_norm(predictor.secant_direction)
             concat_states = [
                 predictor.state,
                 predictor.bparam,
                 predictor.secant_direction,
                 predictor.get_secant_concat(),
             ]
+
             del predictor
             gc.collect()
             corrector = PerturbedCorrecter(
@@ -103,11 +108,12 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 hparams=self.hparams,
                 pred_state=[self._state_wrap.state, self._bparam_wrap.state],
                 pred_prev_state=[self._state_wrap.state, self._bparam_wrap.state],
+                counter=self.continuation_steps
             )
             self._prev_state = copy.deepcopy(self._state_wrap.state)
             self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)
 
-            state, bparam = corrector.correction_step()
+            state, bparam, quality = corrector.correction_step()
             value = self.value_func(state, bparam)
             print(
                 "How far ....", pytree_relative_error(self._bparam_wrap.state, bparam)

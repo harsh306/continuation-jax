@@ -13,12 +13,8 @@ from utils.custom_nn import constant_2d, HomotopyDense, v_2d, HomotopyDropout
 from utils.datasets import mnist
 
 batch_size = 1000
-input_shape = (batch_size, 784)
-step_size = 0.1
-num_steps = 10
-code_dim = 1
+input_shape = (batch_size, 10)
 npr.seed(7)
-
 
 def synth_batches():
     while True:
@@ -26,12 +22,12 @@ def synth_batches():
         yield images
 
 
-# batches = synth_batches()
-# inputs = next(batches)
+batches = synth_batches()
+inputs = next(batches)
 
-train_images, _, _, _ = mnist(permute_train=True)
-del _
-inputs = train_images[:batch_size]
+# train_images, _, _, _ = mnist(permute_train=True)
+# del _
+# inputs = train_images[:batch_size]
 
 # u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
 # I = np.eye(v_t.shape[-1])
@@ -40,7 +36,7 @@ inputs = train_images[:batch_size]
 
 
 init_fun, predict_fun = stax.serial(
-    Dropout(rate=0.9),
+    HomotopyDropout(rate=0.0),
     Dense(4, b_init=zeros),
     Dense(2, b_init=zeros),
     Dense(4, b_init=zeros),

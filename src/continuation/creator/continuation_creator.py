@@ -2,6 +2,7 @@ from examples.abstract_problem import AbstractProblem, ProblemWraper
 from typing import Dict
 from src.continuation.base_continuation import Continuation
 from src.continuation.natural_continuation import NaturalContinuation
+from src.continuation.secant_continuation import SecantContinuation
 from src.continuation.arc_len_continuation import PseudoArcLenContinuation
 from src.continuation.perturbed_arc_len_continuation import (
     PerturbedPseudoArcLenContinuation,
@@ -38,11 +39,23 @@ class ContinuationCreator:
                 objective=self.problem.objective,
                 hparams=self.hparams,
             )
-
+        elif self.hparams["meta"]["method"] == "secant":
+            states, bparams = self.problem.initial_values()
+            state, bparam = states[1], bparams[1]
+            state_0, bparam_0 = states[0], bparams[0]
+            return SecantContinuation(
+                state,
+                bparam,
+                state_0,
+                bparam_0,
+                counter=0,
+                objective=self.problem.objective,
+                hparams=self.hparams,
+            )
         elif self.hparams["meta"]["method"] == "parc":
             states, bparams = self.problem.initial_values()
-            state, bparam = states[0], bparams[0]
-            state_0, bparam_0 = states[1], bparams[1]
+            state, bparam = states[1], bparams[1]
+            state_0, bparam_0 = states[0], bparams[0]
             return PseudoArcLenContinuation(
                 state,
                 bparam,
@@ -55,8 +68,8 @@ class ContinuationCreator:
             )
         elif self.hparams["meta"]["method"] == "parc-perturb":
             states, bparams = self.problem.initial_values()
-            state, bparam = states[0], bparams[0]
-            state_0, bparam_0 = states[1], bparams[1]
+            state, bparam = states[1], bparams[1] # TODO: remove this hard-coding, basically use the previous two solutions.
+            state_0, bparam_0 = states[0], bparams[0]
             return PerturbedPseudoArcLenContinuation(
                 state,
                 bparam,
@@ -70,8 +83,8 @@ class ContinuationCreator:
             )
         elif self.hparams["meta"]["method"] == "parc-fix-perturb":
             states, bparams = self.problem.initial_values()
-            state, bparam = states[0], bparams[0]
-            state_0, bparam_0 = states[1], bparams[1]
+            state, bparam = states[1], bparams[1]
+            state_0, bparam_0 = states[0], bparams[0]
             return PerturbedPseudoArcLenFixedContinuation(
                 state,
                 bparam,

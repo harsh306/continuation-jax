@@ -51,7 +51,7 @@ def pytree_element_mul(x, s):
     return tree_util.tree_map(lambda a: a * s, x)
 
 
-def pytree_to_vec(x):
+def pytree_to_vec(x): # cannot be jitted as it return pytree , unravel function
     return flatten_util.ravel_pytree(x)
 
 

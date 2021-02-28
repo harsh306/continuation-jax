@@ -31,6 +31,7 @@ class PerturbedCorrecter(ConstrainedCorrector):
         hparams,
         pred_state,
         pred_prev_state,
+        counter
     ):
         super().__init__(
             optimizer,
@@ -51,40 +52,59 @@ class PerturbedCorrecter(ConstrainedCorrector):
         self.pred_state = pred_state
         self.pred_prev_state = pred_prev_state
         self.sphere_radius = hparams["sphere_radius"]
+        self.counter = counter
 
-    def _perform_perturb_by_projection(self):
+    @staticmethod
+    @jit
+    def exp_decay(epoch, initial_lrate):
+        k = 0.1
+        lrate = initial_lrate * np.exp(-k * epoch)
+        return lrate
+
+    @staticmethod
+    @jit
+    def _perform_perturb_by_projection(
+            _state_secant_vector,
+            _state_secant_c2,
+            key,
+            pred_prev_state,
+            _state,
+            _bparam,
+            counter,
+            sphere_radius,
+    ):
         ### Secant normal
-        n, _ = pytree_to_vec(
-            [self._state_secant_vector["state"], self._state_secant_vector["bparam"]]
+        n, sample_unravel = pytree_to_vec(
+            [_state_secant_vector["state"], _state_secant_vector["bparam"]]
+        )
+        n = pytree_normalized(n)
+        ### sample a random poin in Rn
+        u = tree_map(
+            lambda a: a + random.uniform(key, a.shape),
+            pytree_zeros_like(n),
         )
 
-        ### sample a random poin in Rn
-        sample = tree_map(
-            lambda a: a + random.uniform(self.key, a.shape),
-            pytree_zeros_like(self._state),
-        )
-        z = tree_map(
-            lambda a: a + random.normal(self.key, a.shape),
-            pytree_zeros_like(self._bparam),
-        )
-        u, sample_unravel = pytree_to_vec([sample, z])
+        tmp, _ = pytree_to_vec([_state_secant_c2['state'], _state_secant_c2['bparam']])
+
         # select a point on the secant normal
-        u_0, _ = pytree_to_vec(self.pred_prev_state)
+        u_0, _ = pytree_to_vec(pred_prev_state)
         # compute projection
         proj_of_u_on_n = projection_affine(len(n), u, n, u_0)
-        tmp, _ = pytree_to_vec([self._state, self._bparam])
-        point_on_plane = u + pytree_sub(
-            tmp, proj_of_u_on_n
-        )  ## state= self.pred_state + n
+
+        point_on_plane = u + pytree_sub(tmp, proj_of_u_on_n)  ## state= pred_state + n
+        inv_vec = np.array([-1.0, 1.0])
         parc = pytree_element_mul(
             pytree_normalized(pytree_sub(point_on_plane, tmp)),
-            npr.choice(np.array([-1.0, 1.0])),
+            inv_vec[(counter % 2)],
         )
-        point_on_plane_2 = tmp + self.sphere_radius * parc
+        point_on_plane_2 = tmp + sphere_radius * parc
         new_sample = sample_unravel(point_on_plane_2)
-        self.state_stack.update({"state": new_sample[0]})
-        self.state_stack.update({"bparam": new_sample[1]})
-        self._parc_vec = pytree_sub(self.state_stack, self._state_secant_c2)
+        state_stack = {}
+        state_stack.update({"state": new_sample[0]})
+        state_stack.update({"bparam": new_sample[1]})
+        _parc_vec = pytree_sub(state_stack, _state_secant_c2)
+        return _parc_vec, state_stack
+
 
     def _perform_perturb(self):
         """Add noise to a PyTree"""
@@ -118,7 +138,8 @@ class PerturbedCorrecter(ConstrainedCorrector):
 
     def _evaluate_perturb(self):
         """Evaluate weather the perturbed vector is orthogonal to secant vector"""
-        dot = pytree_dot(self._parc_vec, self._state_secant_vector)
+
+        dot = pytree_dot(pytree_normalized(self._parc_vec), pytree_normalized(self._state_secant_vector))
         if math.isclose(dot, 0.0, abs_tol=0.25):
             print(f"Perturb was near arc-plane. {dot}")
             self._state = self.state_stack["state"]
@@ -132,10 +153,18 @@ class PerturbedCorrecter(ConstrainedCorrector):
         Returns:
           (state: problem parameters, bparam: continuation parameter) Tuple
         """
-        self._perform_perturb_by_projection()
-        self._evaluate_perturb()
-        # super().correction_step()
-
+        self._parc_vec, self.state_stack = self._perform_perturb_by_projection(
+            self._state_secant_vector,
+            self._state_secant_c2,
+            self.key,
+            self.pred_prev_state,
+            self._state,
+            self._bparam,
+            self.counter,
+            self.sphere_radius,
+        )
+        self._evaluate_perturb()  # does every time
+        quality =0.0
         for k in range(self.warmup_period):
             grads = self.compute_grad_fn(self._state, self._bparam)
             self._state = self.opt.update_params(self._state, grads[0])
@@ -150,10 +179,10 @@ class PerturbedCorrecter(ConstrainedCorrector):
                 self.delta_s,
             )
             self._lagrange_multiplier = self.ascent_opt.update_params(
-                self._lagrange_multiplier, lagrange_grads[0]
+                self._lagrange_multiplier, lagrange_grads[0], k
             )
             for j in range(self.descent_period):
-                state_grads, bpram_grads = self.compute_min_grad_fn(
+                state_grads, bparam_grads = self.compute_min_grad_fn(
                     self._state,
                     self._bparam,
                     self._lagrange_multiplier,
@@ -161,7 +190,18 @@ class PerturbedCorrecter(ConstrainedCorrector):
                     self._state_secant_vector,
                     self.delta_s,
                 )
-                self._bparam = self.opt.update_params(self._bparam, bpram_grads)
-                self._state = self.opt.update_params(self._state, state_grads)
 
-        return self._state, self._bparam
+                if self.hparams['adaptive']:
+                    self.opt.lr = self.exp_decay(j, self.hparams['natural_lr'])
+                    quality = l2_norm(state_grads) + l2_norm(bparam_grads)
+                    # if quality > self.hparams['quality_thresh']:
+                    #     self.hparams['natural_lr'] = int(self.hparams['natural_lr']) / 8
+                        # print('grads', bparam_grads, state_grads)
+                        # state_grads = clip_grads(state_grads, 0.01)
+                        # bparam_grads = clip_grads(bparam_grads, 0.01)
+                        # print('clipped grads', bparam_grads, state_grads)
+
+                self._bparam = self.opt.update_params(self._bparam, bparam_grads, j)
+                self._state = self.opt.update_params(self._state, state_grads, j)
+
+        return self._state, self._bparam, quality

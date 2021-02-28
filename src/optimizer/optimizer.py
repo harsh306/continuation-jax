@@ -29,10 +29,19 @@ def gradient_ascent(step_size):
     return init, update, get_params
 
 
-class Optimizer(ABC):
+class Optimizer:
     """Abstract Optimizer to be inherited by developer for any new optimizer."""
+    def __init__(self, lr):
+        self._lr =lr
 
-    @abstractmethod
+    @property
+    def lr(self):
+        return self._lr
+
+    @lr.setter
+    def lr(self, lr):
+        self._lr = lr
+
     def update_params(
         self, params: list, grad_params: list, step_index: int = 0
     ) -> list:
@@ -41,7 +50,7 @@ class Optimizer(ABC):
 
 class GDOptimizer(Optimizer):
     def __init__(self, learning_rate):
-        self.lr = learning_rate
+        super().__init__(learning_rate)
         self.opt_init, self.opt_update, self.get_params = sgd(step_size=self.lr)
 
     def update_params(
@@ -54,7 +63,7 @@ class GDOptimizer(Optimizer):
 
 class _GDOptimizer(Optimizer):
     def __init__(self, learning_rate):
-        self.lr = learning_rate
+        super().__init__(learning_rate)
 
     def update_params(
         self, params: list, grad_params: list, step_index: int = 0
@@ -66,7 +75,7 @@ class _GDOptimizer(Optimizer):
 
 class GAOptimizer(Optimizer):
     def __init__(self, learning_rate):
-        self.lr = learning_rate
+        super().__init__(learning_rate)
         self.opt_init, self.opt_update, self.get_params = gradient_ascent(
             step_size=self.lr
         )
@@ -81,7 +90,7 @@ class GAOptimizer(Optimizer):
 
 class AdamOptimizer(Optimizer):
     def __init__(self, learning_rate):
-        self.lr = learning_rate
+        super().__init__(learning_rate)
         self.opt_init, self.opt_update, self.get_params = adam(step_size=self.lr)
 
     def update_params(
@@ -107,3 +116,7 @@ class OptimizerCreator:
         else:
             print(f"Optimizer not implemented: {self._opt_string}")
             raise NotImplementedError
+
+if __name__ == '__main__':
+    opt = GDOptimizer(0.5)
+    print(opt.lr)

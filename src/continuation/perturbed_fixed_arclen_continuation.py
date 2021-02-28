@@ -12,6 +12,7 @@ from jax.tree_util import *
 import copy
 from utils.profiler import profile
 import gc
+from jax.experimental.optimizers import l2_norm
 from utils.math_trees import pytree_relative_error
 
 # TODO: make **kwargs availible
@@ -45,6 +46,12 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
             hparams,
         )
         self.key_state = key_state
+        self.clip_lambda_max = lambda g: np.where(
+            (g > self.hparams["lambda_max"]), self.hparams["lambda_max"], g
+        )
+        self.clip_lambda_min = lambda g: np.where(
+            (g < self.hparams["lambda_min"]), self.hparams["lambda_min"], g
+        )
 
     @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):
@@ -69,8 +76,8 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
             )
 
             concat_states = [
-                (self._state_wrap.state, self._bparam_wrap.state),
                 (self._prev_state, self._prev_bparam),
+                (self._state_wrap.state, self._bparam_wrap.state),
                 self.prev_secant_direction,
             ]
 
@@ -78,10 +85,15 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
                 concat_states=concat_states,
                 delta_s=self._delta_s,
                 omega=self._omega,
-                net_spacing=self.hparams["net_spacing"],
+                net_spacing_param=self.hparams["net_spacing_param"],
+                net_spacing_bparam=self.hparams["net_spacing_bparam"],
+                hparams=self.hparams
             )
             predictor.prediction_step()
+
             self.prev_secant_direction = predictor.secant_direction
+
+            self.hparams['sphere_radius'] = 5*self.hparams['omega']*l2_norm(predictor.secant_direction)
             concat_states = [
                 predictor.state,
                 predictor.bparam,
@@ -113,23 +125,16 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
             (
                 state,
                 bparam,
+                quality
             ) = (
                 corrector.correction_step()
             )  # TODO: make predictor corrector similar api's
 
-            clip_lambda = lambda g: np.where(
-                (g > self.hparams["lambda_max"]), self.hparams["lambda_max"], g
-            )
-            bparam = tree_map(clip_lambda, bparam)
-            clip_lambda = lambda g: np.where(
-                (g < self.hparams["lambda_min"]), self.hparams["lambda_min"], g
-            )
-            bparam = tree_map(clip_lambda, bparam)
 
+
+            bparam = tree_map(self.clip_lambda_max, bparam)
+            bparam = tree_map(self.clip_lambda_min, bparam)
             value = self.value_func(state, bparam)
-            print(
-                "How far ....", pytree_relative_error(self._bparam_wrap.state, bparam)
-            )
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
             self._value_wrap.state = value
@@ -137,3 +142,13 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
             del corrector
             del concat_states
             gc.collect()
+            if (bparam[0]>=self.hparams['lambda_max']) or (bparam[0]<=self.hparams['lambda_min']):
+                self.sw.write(
+                    [
+                        self._state_wrap.get_record(),
+                        self._bparam_wrap.get_record(),
+                        self._value_wrap.get_record(),
+                    ]
+                )
+                break
+

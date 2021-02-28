@@ -4,6 +4,7 @@ author: Paul Bruillard, harsh
 
 import jax.numpy as jnp
 from jax import lax
+from jax import jit
 from utils.math_trees import *
 from typing import Any
 

@@ -1,25 +1,28 @@
 from src.continuation.methods.predictor.base_predictor import Predictor
 from jax.tree_util import tree_multimap
 from utils.math_trees import *
+from jax import jit
 
 
 class SecantPredictor(Predictor):
-    def __init__(self, concat_states, delta_s, omega, net_spacing):
+    def __init__(self, concat_states, delta_s, omega, net_spacing_param, net_spacing_bparam, hparams):
         super().__init__(concat_states)
         self._prev_state = None
         self._prev_bparam = None
         self.delta_s = delta_s
         self.omega = omega
-        self.net_spacing = net_spacing
+        self.net_spacing_param = net_spacing_param
+        self.net_spacing_bparam = net_spacing_bparam
         self.secantvar_state = None
         self.secantvar_bparam = None
         self.secant_direction = dict()
         self.prev_secant_direction = None
+        self.hparams = hparams
 
     def _assign_states(self):
-        self.prev_secant_direction = self._concat_states[2]
-        self._state, self._bparam = self._concat_states[1]
         self._prev_state, self._prev_bparam = self._concat_states[0]
+        self._state, self._bparam = self._concat_states[1]
+        self.prev_secant_direction = self._concat_states[2]
 
     def _choose_direction(self):
         if self.prev_secant_direction:
@@ -79,37 +82,91 @@ class SecantPredictor(Predictor):
             else:
                 pass
 
-    def _compute_secant(self):
-        """Secant computation for PyTree"""
-        self.secant_direction.update(
+    # def _compute_secant(self):
+    #     """Secant computation for PyTree"""
+    #
+    #     state_sub = pytree_sub(self._state, self._prev_state)
+    #
+    #     self.secant_direction.update(
+    #         {
+    #             "state": pytree_element_mul(
+    #                 state_sub, self.net_spacing_param/(l2_norm(state_sub) + 1e-2)
+    #             )
+    #         }
+    #     )
+    #     bparam_sub = pytree_sub(self._bparam, self._prev_bparam)
+    #
+    #     self.secant_direction.update(
+    #         {
+    #             "bparam": pytree_element_mul(
+    #             bparam_sub, self.net_spacing_bparam/np.square(l2_norm(bparam_sub))
+    #             )
+    #         }
+    #     )
+    #     del state_sub, bparam_sub
+    #
+    #     #self.secant_direction = pytree_normalized(self.secant_direction)
+    #     #print(self.secant_direction)
+
+    @staticmethod
+    @jit
+    def _compute_secant(_state, _bparam, _prev_state, _prev_bparam, net_spacing_param, net_spacing_bparam, omega):
+        secant_direction = {}
+        state_sub = pytree_sub(_state, _prev_state)
+        secant_direction.update(
             {
                 "state": pytree_element_mul(
-                    pytree_sub(self._state, self._prev_state), self.net_spacing
+                    state_sub, net_spacing_param/(l2_norm(state_sub) + 1e-2)
                 )
             }
         )
-
-        self.secant_direction.update(
-            {"bparam": pytree_sub(self._bparam, self._prev_bparam)}
+        bparam_sub = pytree_sub(_bparam, _prev_bparam)
+        secant_direction.update(
+            {"bparam": pytree_element_mul(bparam_sub, net_spacing_bparam/np.square(l2_norm(bparam_sub)))
+             }
         )
+        return secant_direction
 
-        self.secant_direction = pytree_normalized(self.secant_direction)
 
     def prediction_step(self):
         """Given current state predict next state.
         Updates (state_guess: problem parameters, bparam_guess: continuation parameter)
         """
         self._assign_states()
-        self._compute_secant()
+
+        self.secant_direction = self._compute_secant(self._state, self._bparam, self._prev_state,
+                                                     self._prev_bparam, self.net_spacing_param,
+                                                     self.net_spacing_bparam, self.omega)
         # self._choose_direction()
-        self._state = tree_multimap(
-            lambda a, b: a + self.omega * b, self._state, self.secant_direction["state"]
-        )
-        self._bparam = tree_multimap(
-            lambda a, b: a + self.omega * b,
-            self._bparam,
-            self.secant_direction["bparam"],
-        )
+        try_state = None
+        try_bparam = None
+        for u in range(self.hparams['retry']):
+            try_state = tree_multimap(
+                lambda a, b: a + self.omega * b, self._state, self.secant_direction["state"]
+            )
+            try_bparam = tree_multimap(
+                lambda a, b: a + self.omega * b,
+                self._bparam,
+                self.secant_direction["bparam"],
+            )
+            relative_error = l2_norm(pytree_relative_error(self._bparam, try_bparam))
+            if self.hparams['adaptive']:
+                if (
+                        relative_error > self.hparams['re_tresh']
+                ):
+                    self.omega = self.omega * self.hparams['omega_d']
+                    print(
+                        f"retry as relative_error: {relative_error}"
+                    )
+                else:
+                    break
+            else:
+                break
+
+        self._state = try_state
+        self._bparam = try_bparam
+        print('predictor', self._bparam)
+        del try_bparam, try_state
 
     def get_secant_vector_concat(self):
         """Concatenated secant vector.

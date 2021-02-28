@@ -151,14 +151,15 @@ def bif_plot(dpath, func, n=3):
         y, x, z = func(data)
         # plt.plot(x, y)
         plt.scatter(x, y, c=z, cmap=cmaps[i] + "_r", alpha=1.0)
+        plt.plot(x, y, alpha=1.0)
 
     plt.ylabel(f"{func.__name__} Network Parameters")
     plt.xlabel(f"Continuation Parameter")
     sm1 = plt.cm.ScalarMappable(
-        cmap=cmaps[0] + "_r", norm=plt.Normalize(vmin=0.3, vmax=1.5)
+        cmap=cmaps[0] + "_r", norm=plt.Normalize(vmin=min(z), vmax=max(z))
     )
     sm = plt.cm.ScalarMappable(
-        cmap=cmaps[1] + "_r", norm=plt.Normalize(vmin=0.3, vmax=1.5)
+        cmap=cmaps[1] + "_r", norm=plt.Normalize(vmin=min(z), vmax=max(z))
     )
     plt.colorbar(sm1)
     plt.colorbar(sm)
@@ -191,11 +192,11 @@ def bif_plotv(path, func):
     data = read_data(path)
     y, x, z = func(data)
     # plt.plot(x, y)
-    plt.scatter(x, y, c=z, cmap="coolwarm_r", alpha=0.3)
+    plt.scatter(x, y, c=z, cmap="coolwarm_r", alpha=0.6)
     plt.ylabel(f"{func.__name__} Network Parameters")
     plt.xlabel(f"Continuation Parameter")
     sm = plt.cm.ScalarMappable(
-        cmap="coolwarm_r", norm=plt.Normalize(vmin=0.3, vmax=0.8)
+        cmap="coolwarm_r", norm=plt.Normalize(vmin=min(z), vmax=max(z))
     )
     plt.colorbar(sm)
     plt.show()
@@ -204,10 +205,10 @@ def bif_plotv(path, func):
 
 if __name__ == "__main__":
 
-    path = f"/opt/ml/output/pca_ae/mnist/"
+    path = f"/opt/ml/output/"
     # bif_plotv(path, pick_array)
     # bif_plotv(path, norm_data_transform)
-    bif_plotv(path, pick_array)
+    bif_plot(path, pick_array, 5)
     # bif_plotv(path, norm_data_transform)
     # bif_plot(path, cosine_data_transform, 2)
     # bif_plot(path, norm_data_transform, 2)

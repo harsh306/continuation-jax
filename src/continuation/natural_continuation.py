@@ -41,7 +41,7 @@ class NaturalContinuation(Continuation):
         A continuation strategy that defines how predictor and corrector components of the algorithm
         interact with the states of the mathematical system.
         """
-        self.sw = StateWriter(f"{self.output_file[0]}/version.json")
+        self.sw = StateWriter(f"{self.output_file}/version.json")
 
         for i in range(self.continuation_steps):
             print(self._value_wrap.get_record(), self._bparam_wrap.get_record())

@@ -35,6 +35,7 @@ class ConstrainedCorrector(Corrector):
         self.ascent_period = hparams["ascent_period"]
         self.descent_period = hparams["descent_period"]
         self.max_norm_state = hparams["max_bounds"]
+        self.hparams = hparams
         self.compute_min_grad_fn = compute_min_grad_fn
         self.compute_max_grad_fn = compute_max_grad_fn
         self.compute_grad_fn = compute_grad_fn

@@ -13,7 +13,7 @@ from utils.custom_nn import constant_2d, HomotopyDense, v_2d
 from utils.datasets import mnist
 
 batch_size = 1000
-input_shape = (batch_size, 784)
+input_shape = (batch_size, 8)
 step_size = 0.1
 num_steps = 10
 code_dim = 1
@@ -26,13 +26,13 @@ def synth_batches():
         yield images
 
 
-# batches = synth_batches()
-# inputs = next(batches)
+batches = synth_batches()
+inputs = next(batches)
 
-train_images, _, _, _ = mnist(permute_train=True)
-del _
-inputs = train_images[:batch_size]
-# print(inputs.shape)
+# train_images, _, _, _ = mnist(permute_train=True)
+# del _
+# inputs = train_images[:batch_size]
+# # print(inputs.shape)
 
 u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
 I = np.eye(v_t.shape[-1])
@@ -49,8 +49,8 @@ noisy_I = I + I_add
 
 init_fun, predict_fun = stax.serial(
     HomotopyDense(out_dim=4, W_init=v_2d(v_t.T), b_init=zeros),
-    HomotopyDense(out_dim=2, W_init=constant_2d(I), b_init=zeros),
-    HomotopyDense(out_dim=4, W_init=constant_2d(I), b_init=zeros),
+    HomotopyDense(out_dim=2, W_init=constant_2d(noisy_I), b_init=zeros),
+    HomotopyDense(out_dim=4, W_init=constant_2d(noisy_I), b_init=zeros),
     Dense(out_dim=input_shape[-1], W_init=v_2d(v_t), b_init=zeros),
 )
 
@@ -76,11 +76,11 @@ class PCATopologyAE(AbstractProblem):
         return ae_params, bparam
 
     def initial_values(self):
-        state, bparam = self.initial_value()
-        state_1 = tree_map(lambda a: a + 0.005, state)
-        states = [state, state_1]
-        bparam_1 = tree_map(lambda a: a + 0.05, bparam)
-        bparams = [bparam, bparam_1]
+        state_0, bparam_0 = self.initial_value()
+        state_1 = tree_map(lambda a: a - 0.005, state_0)
+        states = [state_0, state_1]
+        bparam_1 = tree_map(lambda a: a + 0.05, bparam_0)
+        bparams = [bparam_0, bparam_1]
         return states, bparams
 
 
