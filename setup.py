@@ -4,15 +4,20 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 install_requires = [
+    "sphinx_rtd_theme==0.5.1",
+    "Sphinx==3.4.3",
+    "matplotlib==3.1.2",
+    "flax==0.3.0",
+    "numpy==1.18.1",
+    "jsonlines==2.0.0",
     "jax==0.2.9",
-    "sphinx>=3.4.3",
-    "sphinx-rtd-theme",
+    "jaxlib",
     "nbsphinx",
 ]
 
 
 setuptools.setup(
-    name="continuation-jax",  # Replace with your own username
+    name="continuation_jax",  # Replace with your own username
     version="0.0.1",
     author="Harsh Nilesh Pathak",
     author_email="harshnpathak@gmail.com",

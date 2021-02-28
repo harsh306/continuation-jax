@@ -1,11 +1,11 @@
 {
   "meta": {
-    "name": "conv_nn",
-    "description": "description",
+    "name": "toy",
+    "description": "classic numerical continuation examples",
     "method": "parc-fix-perturb",
     "optimizer": "gradient-descent",
     "ascent_optimizer": "gradient-ascent",
-    "output_dir": "/opt/ml/output/"
+    "output_dir": "/opt/ml/output/toy/"
   },
   "continuation_steps": 100,
   "n_perturbs": 5,

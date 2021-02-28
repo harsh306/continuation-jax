@@ -1,16 +1,15 @@
 import jax.numpy as np
 import numpy as onp
 from jax.experimental import stax
-from jax.nn.initializers import zeros, ones
-from jax.nn import sigmoid, relu, hard_tanh
+from jax.nn.initializers import zeros
+from jax.nn import hard_tanh
 from jax.experimental.optimizers import l2_norm
-from jax.experimental.stax import Dense, elementwise, Identity
+from jax.experimental.stax import Dense
 import numpy.random as npr
 from jax import random
 from examples.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
-from utils.custom_nn import constant_2d, HomotopyDense, v_2d
-from utils.datasets import mnist
+from cjax.utils.custom_nn import constant_2d, HomotopyDense, v_2d
 
 batch_size = 1000
 input_shape = (batch_size, 8)

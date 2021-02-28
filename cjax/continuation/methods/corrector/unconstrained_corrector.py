@@ -2,8 +2,8 @@ from typing import Tuple
 
 from jax import grad, jit
 
-from src.continuation.methods.corrector.base_corrector import Corrector
-from src.optimizer.optimizer import Optimizer
+from cjax.continuation.methods.corrector.base_corrector import Corrector
+from cjax.optimizer.optimizer import Optimizer
 
 
 class UnconstrainedCorrector(Corrector):

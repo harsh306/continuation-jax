@@ -1,28 +1,25 @@
-from src.continuation.base_continuation import Continuation
-from src.continuation.states.state_variables import StateVariable, StateWriter
-from src.optimizer.optimizer import OptimizerCreator
-from src.continuation.methods.predictor.natural_predictor import NaturalPredictor
-from src.continuation.methods.predictor.secant_predictor import SecantPredictor
-from src.continuation.methods.corrector.unconstrained_corrector import (
+from cjax.continuation.base_continuation import Continuation
+from cjax.continuation.states.state_variables import StateVariable, StateWriter
+from cjax.optimizer.optimizer import OptimizerCreator
+from cjax.continuation.methods.predictor.natural_predictor import NaturalPredictor
+from cjax.continuation.methods.corrector.unconstrained_corrector import (
     UnconstrainedCorrector,
 )
 from jax.tree_util import *
 import gc
-from utils.profiler import profile
+from cjax.utils.profiler import profile
 from jax import jit, grad
 import jax.numpy as np
 
 
-class SecantContinuation(Continuation):
-    """Secant Continuation strategy.
+class NaturalContinuation(Continuation):
+    """Natural Continuation strategy.
 
     Composed of natural predictor and unconstrained corrector"""
 
-    def __init__(self, state, bparam, state_0, bparam_0, counter, objective, hparams):
+    def __init__(self, state, bparam, counter, objective, hparams):
         self._state_wrap = StateVariable(state, counter)
         self._bparam_wrap = StateVariable(bparam, counter)
-        self._prev_state = state_0
-        self._prev_bparam = bparam_0
         self.objective = objective
         self.value_func = jit(self.objective)
         self._value_wrap = StateVariable(self.objective(state, bparam), counter)
@@ -34,10 +31,8 @@ class SecantContinuation(Continuation):
         self.continuation_steps = hparams["continuation_steps"]
 
         self.output_file = hparams["meta"]["output_dir"]
-        self._delta_s = hparams["delta_s"]
-        self._omega = hparams["omega"]
+        self._delta_s = hparams["delta_bparams"]
         self.grad_fn = jit(grad(self.objective, argnums=[0]))
-        self.prev_secant_direction = None
 
     @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):
@@ -61,23 +56,11 @@ class SecantContinuation(Continuation):
                 ]
             )
 
-            concat_states = [
-                (self._prev_state, self._prev_bparam),
-                (self._state_wrap.state, self._bparam_wrap.state),
-                self.prev_secant_direction,
-            ]
-
-            predictor = SecantPredictor(
-                concat_states=concat_states,
-                delta_s=self._delta_s,
-                omega=self._omega,
-                net_spacing_param=self.hparams["net_spacing_param"],
-                net_spacing_bparam=self.hparams["net_spacing_bparam"],
-                hparams=self.hparams
+            concat_states = [self._state_wrap.state, self._bparam_wrap.state]
+            predictor = NaturalPredictor(
+                concat_states=concat_states, delta_s=self._delta_s
             )
             predictor.prediction_step()
-
-            self.prev_secant_direction = predictor.secant_direction
 
             concat_states = [predictor.state, predictor.bparam]
             del predictor

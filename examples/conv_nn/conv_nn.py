@@ -13,7 +13,7 @@ from flax import linen as nn  # The Linen API
 from flax import optim
 import jax
 import numpy.random as npr
-from utils import datasets
+from cjax.utils import datasets
 
 #
 # num_classes = 10

@@ -1,12 +1,10 @@
-from src.continuation.methods.corrector.constrained_corrector import (
+from cjax.continuation.methods.corrector.constrained_corrector import (
     ConstrainedCorrector,
 )
 from typing import Tuple
-from jax.tree_util import tree_map, tree_flatten
+from jax.tree_util import tree_map
 from jax import random
-from utils.math_trees import *
-from jax import numpy as np
-from utils.rotation_ndims import *
+from cjax.utils.rotation_ndims import *
 from jax import jit
 import math
 from jax.experimental.optimizers import clip_grads
@@ -153,9 +151,9 @@ class PerturbedFixedCorrecter(ConstrainedCorrector):
                 self.opt.lr = self.exp_decay(j, self.hparams['natural_lr'])
                 quality = l2_norm(state_grads)+l2_norm(bparam_grads)
                 if quality>self.hparams['quality_thresh']:
-                    pass
+                    #pass
                     #self.hparams['natural_lr'] = int(self.hparams['natural_lr'])/8
-                    #print(f"quality {quality}, {self.opt.lr}")
+                    print(f"quality {quality}, {self.opt.lr}")
                     #print('grads', bparam_grads, state_grads)
                 state_grads = clip_grads(state_grads, self.hparams['quality_thresh'])
                 bparam_grads = clip_grads(bparam_grads, self.hparams['quality_thresh'])

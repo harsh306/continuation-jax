@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
-from jax.tree_util import *
 import jax.numpy as np
-from jax import grad, jit
+from jax import grad
 from jax.experimental.optimizers import l2_norm
-from jax import lax
-from utils.math_trees import pytree_dot, pytree_sub
+from cjax.utils.math_trees import pytree_dot, pytree_sub
 
 
 class AbstractProblem(ABC):

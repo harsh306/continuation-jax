@@ -1,8 +1,5 @@
-from typing import Tuple
-
-from src.continuation.methods.predictor.base_predictor import Predictor
-from jax.tree_util import tree_multimap, tree_map
-from utils.math_trees import pytree_element_add
+from cjax.continuation.methods.predictor.base_predictor import Predictor
+from cjax.utils.math_trees import pytree_element_add
 
 
 class NaturalPredictor(Predictor):

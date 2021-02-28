@@ -1,6 +1,6 @@
 from typing import Tuple
 from jax import grad, jit
-from src.continuation.methods.corrector.base_corrector import Corrector
+from cjax.continuation.methods.corrector.base_corrector import Corrector
 
 
 class ConstrainedCorrector(Corrector):

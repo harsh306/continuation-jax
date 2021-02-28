@@ -1,13 +1,13 @@
 from examples.abstract_problem import AbstractProblem, ProblemWraper
 from typing import Dict
-from src.continuation.base_continuation import Continuation
-from src.continuation.natural_continuation import NaturalContinuation
-from src.continuation.secant_continuation import SecantContinuation
-from src.continuation.arc_len_continuation import PseudoArcLenContinuation
-from src.continuation.perturbed_arc_len_continuation import (
+from cjax.continuation.base_continuation import Continuation
+from cjax.continuation.natural_continuation import NaturalContinuation
+from cjax.continuation.secant_continuation import SecantContinuation
+from cjax.continuation.arc_len_continuation import PseudoArcLenContinuation
+from cjax.continuation.perturbed_arc_len_continuation import (
     PerturbedPseudoArcLenContinuation,
 )
-from src.continuation.perturbed_fixed_arclen_continuation import (
+from cjax.continuation.perturbed_fixed_arclen_continuation import (
     PerturbedPseudoArcLenFixedContinuation,
 )
 

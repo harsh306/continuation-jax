@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from utils.math_trees import *
+from cjax.utils.math_trees import *
 import jax.numpy as np
 from examples.conv_nn.conv_nn import ConvNeuralNetwork
 import copy

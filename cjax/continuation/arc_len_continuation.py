@@ -1,16 +1,13 @@
-from src.continuation.base_continuation import Continuation
-from src.continuation.states.state_variables import StateVariable, StateWriter
-from src.optimizer.optimizer import GDOptimizer, GAOptimizer, AdamOptimizer
-from src.continuation.methods.predictor.secant_predictor import SecantPredictor
-from src.continuation.methods.corrector.constrained_corrector import (
+from cjax.continuation.base_continuation import Continuation
+from cjax.continuation.states.state_variables import StateVariable, StateWriter
+from cjax.continuation.methods.predictor.secant_predictor import SecantPredictor
+from cjax.continuation.methods.corrector.constrained_corrector import (
     ConstrainedCorrector,
 )
-from jax.tree_util import *
-import copy
 from jax import jit, grad
 import gc
-from utils.profiler import profile
-from src.optimizer.optimizer import OptimizerCreator
+from cjax.utils.profiler import profile
+from cjax.optimizer.optimizer import OptimizerCreator
 
 
 class PseudoArcLenContinuation(Continuation):

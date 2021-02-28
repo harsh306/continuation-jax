@@ -1,15 +1,12 @@
-from src.continuation.methods.corrector.constrained_corrector import (
+from cjax.continuation.methods.corrector.constrained_corrector import (
     ConstrainedCorrector,
 )
 from typing import Tuple
-from jax.tree_util import tree_map, tree_flatten
+from jax.tree_util import tree_map
 from jax import random
-from utils.math_trees import *
-from jax import numpy as np
-from utils.rotation_ndims import *
+from cjax.utils.rotation_ndims import *
 from jax import jit
 import math
-import numpy.random as npr
 
 
 class PerturbedCorrecter(ConstrainedCorrector):

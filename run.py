@@ -14,7 +14,7 @@ the critical points or fixed points and dumps them to  output file provided in h
 
 
 """
-from src.continuation.creator.continuation_creator import ContinuationCreator
+from cjax.continuation.creator.continuation_creator import ContinuationCreator
 from examples.poly_nn.simple_neural_network import SimpleNeuralNetwork
 from examples.conv_nn.conv_nn import ConvNeuralNetwork
 from examples.autoencoder.autoencoder import PCATopologyAE
@@ -33,7 +33,7 @@ config.update("jax_debug_nans", True)
 # TODO: use **kwargs to reduce params
 
 if __name__ == "__main__":
-    problem = PitchForkProblem()
+    problem = DataTopologyAE()
     problem = ProblemWraper(problem)
 
     with open(problem.HPARAMS_PATH, "r") as hfile:

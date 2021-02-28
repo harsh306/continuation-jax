@@ -1,21 +1,12 @@
 import jax.numpy as np
 import numpy as onp
-from jax.experimental import stax
-from jax.nn.initializers import zeros, ones
-from jax.nn import sigmoid
-from jax.experimental.optimizers import l2_norm
-from jax.experimental.stax import Dense, elementwise, Identity
 import numpy.random as npr
 from jax import random
 from examples.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
-from utils.custom_nn import constant_2d, HomotopyDense
 
-
-import jax
 import jax.numpy as jnp
-from jax import jit, grad, lax, random
-from jax.experimental import optimizers
+from jax import random
 from jax.experimental import stax
 from jax.experimental.stax import Dense, FanOut, Relu, Softplus
 

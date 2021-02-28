@@ -9,11 +9,11 @@ import numpy.random as npr
 from jax import random
 from examples.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
-from utils.custom_nn import constant_2d, HomotopyDense, v_2d, HomotopyDropout
-from utils.datasets import mnist
+from cjax.utils.custom_nn import constant_2d, HomotopyDense, v_2d, HomotopyDropout
+from cjax.utils.datasets import mnist
 
-batch_size = 1000
-input_shape = (batch_size, 10)
+batch_size = 100
+input_shape = (batch_size, 36)
 npr.seed(7)
 
 def synth_batches():
@@ -22,12 +22,14 @@ def synth_batches():
         yield images
 
 
-batches = synth_batches()
-inputs = next(batches)
+# batches = synth_batches()
+# inputs = next(batches)
 
-# train_images, _, _, _ = mnist(permute_train=True)
-# del _
-# inputs = train_images[:batch_size]
+train_images, labels, _, _ = mnist(permute_train=True)
+del _
+inputs = train_images[:batch_size]
+
+del train_images
 
 # u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
 # I = np.eye(v_t.shape[-1])
@@ -37,12 +39,12 @@ inputs = next(batches)
 
 init_fun, predict_fun = stax.serial(
     HomotopyDropout(rate=0.0),
+    #Dense(4, b_init=zeros),
     Dense(4, b_init=zeros),
-    Dense(2, b_init=zeros),
-    Dense(4, b_init=zeros),
+    #Dense(4, b_init=zeros),
     Dense(out_dim=input_shape[-1], b_init=zeros),
 )
-
+_, key = random.split(random.PRNGKey(0))
 
 class DataTopologyAE(AbstractProblem):
     def __init__(self):
@@ -50,12 +52,10 @@ class DataTopologyAE(AbstractProblem):
 
     @staticmethod
     def objective(params, bparam) -> float:
-        key = random.PRNGKey(0)
         logits = predict_fun(
-            params, inputs, bparam=bparam[0], activation_func=sigmoid, rng=key
+            params, inputs, bparam=bparam[0], rng=key
         )
         keep = random.bernoulli(key, bparam[0], inputs.shape)
-
         inputs_d = np.where(keep, inputs, 0)
 
         loss = np.mean(np.square((np.subtract(logits, inputs_d))))
@@ -65,14 +65,14 @@ class DataTopologyAE(AbstractProblem):
     def initial_value(self):
         ae_shape, ae_params = init_fun(random.PRNGKey(0), input_shape)
         assert ae_shape == input_shape
-        bparam = [np.array([0.001], dtype=np.float64)]
+        bparam = [np.array([0.01], dtype=np.float64)]
         return ae_params, bparam
 
     def initial_values(self):
         state, bparam = self.initial_value()
-        state_1 = tree_map(lambda a: a + 0.005, state)
+        state_1 = tree_map(lambda a: a + 0.05, state)
         states = [state, state_1]
-        bparam_1 = tree_map(lambda a: a + 0.05, bparam)
+        bparam_1 = tree_map(lambda a: a + 0.06, bparam)
         bparams = [bparam, bparam_1]
         return states, bparams
 
@@ -80,7 +80,10 @@ class DataTopologyAE(AbstractProblem):
 if __name__ == "__main__":
     problem = DataTopologyAE()
     ae_params, bparams = problem.initial_value()
+
+
     loss = problem.objective(ae_params, bparams)
+
     print(loss)
 
     # init_c = constant_2d(I)

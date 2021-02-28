@@ -1,6 +1,6 @@
-from src.continuation.methods.predictor.base_predictor import Predictor
+from cjax.continuation.methods.predictor.base_predictor import Predictor
 from jax.tree_util import tree_multimap
-from utils.math_trees import *
+from cjax.utils.math_trees import *
 from jax import jit
 
 
