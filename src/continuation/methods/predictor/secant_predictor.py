@@ -82,32 +82,6 @@ class SecantPredictor(Predictor):
             else:
                 pass
 
-    # def _compute_secant(self):
-    #     """Secant computation for PyTree"""
-    #
-    #     state_sub = pytree_sub(self._state, self._prev_state)
-    #
-    #     self.secant_direction.update(
-    #         {
-    #             "state": pytree_element_mul(
-    #                 state_sub, self.net_spacing_param/(l2_norm(state_sub) + 1e-2)
-    #             )
-    #         }
-    #     )
-    #     bparam_sub = pytree_sub(self._bparam, self._prev_bparam)
-    #
-    #     self.secant_direction.update(
-    #         {
-    #             "bparam": pytree_element_mul(
-    #             bparam_sub, self.net_spacing_bparam/np.square(l2_norm(bparam_sub))
-    #             )
-    #         }
-    #     )
-    #     del state_sub, bparam_sub
-    #
-    #     #self.secant_direction = pytree_normalized(self.secant_direction)
-    #     #print(self.secant_direction)
-
     @staticmethod
     @jit
     def _compute_secant(_state, _bparam, _prev_state, _prev_bparam, net_spacing_param, net_spacing_bparam, omega):

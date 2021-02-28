@@ -106,36 +106,6 @@ class PerturbedFixedCorrecter(ConstrainedCorrector):
         _parc_vec = pytree_sub(state_stack, _state_secant_c2)
         return _parc_vec, state_stack
 
-    def _perform_perturb(self):
-        """Add noise to a PyTree"""
-        destination, _ = pytree_to_vec(
-            [self._state_secant_vector["state"], self._state_secant_vector["bparam"]]
-        )
-
-        src = np.hstack((np.zeros(len(destination) - 1), 1.0))
-        src, _ = pytree_to_vec(src)
-        assert src.shape == destination.shape
-        rotation_matrix = get_rotation_pytree(src, destination)  # TODO: Refactor
-
-        sample = tree_map(
-            lambda a: a + random.normal(self.key, a.shape),
-            self._state,
-        )
-        z = pytree_zeros_like(self._bparam)
-        sample_vec, sample_unravel = pytree_to_vec([sample, z])
-
-        # transform sample to arc-plane
-        new_sample = np.dot(rotation_matrix, sample_vec) + destination
-
-        # sample_vec to pytree
-        new_sample = sample_unravel(new_sample)
-
-        # self._state= new_sample[0]
-        # self._bparam = new_sample[1]
-        self.state_stack.update({"state": new_sample[0]})
-        self.state_stack.update({"bparam": new_sample[1]})
-        self._parc_vec = pytree_sub(self.state_stack, self._state_secant_c2)
-
     def _evaluate_perturb(self):
         """Evaluate weather the perturbed vector is orthogonal to secant vector"""
 
