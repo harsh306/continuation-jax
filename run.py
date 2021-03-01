@@ -22,7 +22,7 @@ from examples.vae.autoencoder import TopologyVAE
 from examples.data_cont_ae.autoencoder import DataTopologyAE
 from examples.random_network.random_01 import RandomExp
 from examples.conv_nn.resnet_50 import ResNet50Network
-from examples.toy.vectror_pitchfork import PitchForkProblem, VectorPitchFork, QuadraticProblem
+from examples.toy.vectror_pitchfork import PitchForkProblem, VectorPitchFork, QuadraticProblem, SigmoidFold
 from examples.abstract_problem import ProblemWraper
 import json
 from jax.config import config
@@ -33,7 +33,7 @@ config.update("jax_debug_nans", True)
 # TODO: use **kwargs to reduce params
 
 if __name__ == "__main__":
-    problem = DataTopologyAE()
+    problem = SigmoidFold()
     problem = ProblemWraper(problem)
 
     with open(problem.HPARAMS_PATH, "r") as hfile:

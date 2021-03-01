@@ -51,6 +51,32 @@ class QuadraticProblem(AbstractProblem):
         bparam = [np.array([3.0])]
         return state, bparam
 
+class SigmoidFold(AbstractProblem):
+    def __init__(self):
+        self.HPARAMS_PATH = "examples/toy/hparams.json"
+
+    @staticmethod
+    def objective(params, bparam) -> float:
+        targets = np.multiply(0.5, params[0])
+        logits = np.divide(1, 1+np.exp(-(np.multiply(5.0, params[0]) + bparam[0])))
+        loss = np.mean(np.square(np.subtract(logits, targets)))
+        return loss
+
+    def initial_value(self):
+        state = [np.array([2.1])]
+        bparam = [np.array([1.0])]
+        return state, bparam
+
+    def initial_values(self):
+        states = [
+            [np.array([2.1])],
+            [np.array([2.00])],
+        ]
+        bparams = [[np.array([1.0])], [np.array([1.1])]]
+
+        return states, bparams
+
+
 
 class PitchForkProblem(AbstractProblem):
     def __init__(self):

@@ -4,7 +4,7 @@ from jax.experimental import stax
 from jax.nn.initializers import zeros, ones
 from jax.nn import sigmoid, relu, hard_tanh
 from jax.experimental.optimizers import l2_norm
-from jax.experimental.stax import Dense, elementwise, Identity, Dropout
+from jax.experimental.stax import Dense, elementwise, Identity, Dropout, Sigmoid, Selu
 import numpy.random as npr
 from jax import random
 from examples.abstract_problem import AbstractProblem
@@ -12,7 +12,7 @@ from jax.tree_util import tree_map
 from cjax.utils.custom_nn import constant_2d, HomotopyDense, v_2d, HomotopyDropout
 from cjax.utils.datasets import mnist
 
-batch_size = 100
+batch_size = 10000
 input_shape = (batch_size, 36)
 npr.seed(7)
 
@@ -40,7 +40,7 @@ del train_images
 init_fun, predict_fun = stax.serial(
     HomotopyDropout(rate=0.0),
     #Dense(4, b_init=zeros),
-    Dense(4, b_init=zeros),
+    Dense(4, b_init=zeros), Sigmoid,
     #Dense(4, b_init=zeros),
     Dense(out_dim=input_shape[-1], b_init=zeros),
 )
@@ -70,9 +70,9 @@ class DataTopologyAE(AbstractProblem):
 
     def initial_values(self):
         state, bparam = self.initial_value()
-        state_1 = tree_map(lambda a: a + 0.05, state)
+        state_1 = tree_map(lambda a: a + 0.084, state)
         states = [state, state_1]
-        bparam_1 = tree_map(lambda a: a + 0.06, bparam)
+        bparam_1 = tree_map(lambda a: a + 0.08, bparam)
         bparams = [bparam, bparam_1]
         return states, bparams
 

@@ -134,7 +134,6 @@ class PerturbedFixedCorrecter(ConstrainedCorrector):
             self.sphere_radius,
         )
         self._evaluate_perturb() # does every time
-        print('corrector_perturb', self.state_stack["bparam"])
         quality = 1.0
         for j in range(self.descent_period):
             state_grads, bparam_grads = self.compute_min_grad_fn(
@@ -154,12 +153,10 @@ class PerturbedFixedCorrecter(ConstrainedCorrector):
                     #pass
                     #self.hparams['natural_lr'] = int(self.hparams['natural_lr'])/8
                     print(f"quality {quality}, {self.opt.lr}")
-                    #print('grads', bparam_grads, state_grads)
-                state_grads = clip_grads(state_grads, self.hparams['quality_thresh'])
-                bparam_grads = clip_grads(bparam_grads, self.hparams['quality_thresh'])
+                state_grads = clip_grads(state_grads, self.hparams['max_clip_grad'])
+                bparam_grads = clip_grads(bparam_grads, self.hparams['max_clip_grad'])
 
             self._bparam = self.opt.update_params(self._bparam, bparam_grads, j)
             self._state = self.opt.update_params(self._state, state_grads, j)
-        print('coreector 1', self._bparam)
 
         return self._state, self._bparam, quality

@@ -2,7 +2,7 @@ import jax.numpy as np
 import numpy as onp
 from jax.experimental import stax
 from jax.nn.initializers import zeros
-from jax.nn import hard_tanh
+from jax.nn import hard_tanh, sigmoid
 from jax.experimental.optimizers import l2_norm
 from jax.experimental.stax import Dense
 import numpy.random as npr
@@ -10,9 +10,10 @@ from jax import random
 from examples.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
 from cjax.utils.custom_nn import constant_2d, HomotopyDense, v_2d
+from cjax.utils.datasets import mnist
 
 batch_size = 1000
-input_shape = (batch_size, 8)
+input_shape = (batch_size, 36)
 step_size = 0.1
 num_steps = 10
 code_dim = 1
@@ -24,14 +25,16 @@ def synth_batches():
         images = npr.rand(*input_shape).astype("float32")
         yield images
 
+#
+# batches = synth_batches()
+# inputs = next(batches)
 
-batches = synth_batches()
-inputs = next(batches)
+train_images, labels, _, _ = mnist(permute_train=True)
+del _
+inputs = train_images[:batch_size]
 
-# train_images, _, _, _ = mnist(permute_train=True)
-# del _
-# inputs = train_images[:batch_size]
-# # print(inputs.shape)
+del train_images
+
 
 u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
 I = np.eye(v_t.shape[-1])
@@ -61,10 +64,10 @@ class PCATopologyAE(AbstractProblem):
     @staticmethod
     def objective(params, bparam) -> float:
         logits = predict_fun(
-            params, inputs, bparam=bparam[0], activation_func=hard_tanh
+            params, inputs, bparam=bparam[0], activation_func=sigmoid
         )
         loss = np.mean(np.square((np.subtract(logits, inputs))))
-        loss += 0.1 * (l2_norm(params) + l2_norm(bparam))
+        #loss += 0.1 * (l2_norm(params) + l2_norm(bparam))
         return loss
 
     def initial_value(self):
@@ -76,9 +79,9 @@ class PCATopologyAE(AbstractProblem):
 
     def initial_values(self):
         state_0, bparam_0 = self.initial_value()
-        state_1 = tree_map(lambda a: a - 0.005, state_0)
+        state_1 = tree_map(lambda a: a - 0.08, state_0)
         states = [state_0, state_1]
-        bparam_1 = tree_map(lambda a: a + 0.05, bparam_0)
+        bparam_1 = tree_map(lambda a: a + 0.08, bparam_0)
         bparams = [bparam_0, bparam_1]
         return states, bparams
 
