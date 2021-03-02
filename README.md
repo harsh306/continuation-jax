@@ -21,6 +21,7 @@ help(cjax)
 >>> math_trees.pytree_element_mul([2,3,5], 2)
 [4, 6, 10]
 >>> math_trees.pytree_sub([2,3,5], [1,1,1])
+[DeviceArray(1, dtype=int32), DeviceArray(2, dtype=int32), DeviceArray(4, dtype=int32)]
 >>> math_trees.pytree_zeros_like({'a':12, 'b':45, 'c':[1,1]})
 {'a': 0, 'b': 0, 'c': [0, 0]}
 
