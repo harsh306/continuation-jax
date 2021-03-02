@@ -7,7 +7,7 @@ from jax.experimental.optimizers import l2_norm
 from jax.experimental.stax import Dense
 import numpy.random as npr
 from jax import random
-from examples.abstract_problem import AbstractProblem
+from cjax.utils.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
 from cjax.utils import constant_2d, HomotopyDense, v_2d
 

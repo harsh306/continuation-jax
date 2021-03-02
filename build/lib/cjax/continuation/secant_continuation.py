@@ -7,7 +7,7 @@ from cjax.continuation.methods.corrector.unconstrained_corrector import (
 )
 from jax.tree_util import *
 import gc
-from cjax.utils import profile
+from cjax.utils.profiler import profile
 from jax import jit, grad
 import jax.numpy as np
 
@@ -106,4 +106,11 @@ class SecantContinuation(Continuation):
             del corrector
             gc.collect()
             if self._bparam_wrap.state[0] >= self.hparams["lambda_max"]:
+                self.sw.write(
+                    [
+                        self._state_wrap.get_record(),
+                        self._bparam_wrap.get_record(),
+                        self._value_wrap.get_record(),
+                    ]
+                )
                 break

@@ -1,16 +1,13 @@
 import jax.numpy as np
-import numpy as onp
 from jax.experimental import stax
-from jax.nn.initializers import zeros, ones
-from jax.nn import sigmoid, relu, hard_tanh
-from jax.experimental.optimizers import l2_norm
-from jax.experimental.stax import Dense, elementwise, Identity, Dropout
+from jax.nn.initializers import zeros
+from jax.nn import sigmoid
+from jax.experimental.stax import Dense
 import numpy.random as npr
 from jax import random
-from examples.abstract_problem import AbstractProblem
+from cjax.utils.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
-from cjax.utils import constant_2d, HomotopyDense, v_2d, HomotopyDropout
-from cjax.utils import mnist
+from cjax.utils import HomotopyDropout
 
 batch_size = 1000
 input_shape = (batch_size, 10)

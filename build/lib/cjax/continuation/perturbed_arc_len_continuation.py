@@ -6,7 +6,7 @@ from cjax.continuation.methods.corrector.perturbed_constrained_corrector import 
     PerturbedCorrecter,
 )
 import copy
-from cjax.utils import profile
+from cjax.utils.profiler import profile
 import gc
 from cjax.utils.math_trees import pytree_relative_error
 

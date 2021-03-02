@@ -1,4 +1,4 @@
-from examples.abstract_problem import AbstractProblem, ProblemWraper
+from cjax.utils.abstract_problem import ProblemWraper
 from typing import Dict
 from cjax.continuation.base_continuation import Continuation
 from cjax.continuation.natural_continuation import NaturalContinuation

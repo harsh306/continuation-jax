@@ -34,11 +34,13 @@ def pick_array(data: list, start: int = 0, end: int = 1) -> Tuple:
     param = []
     bparam = []
     value = []
+    quality = []
     for k in range(len(data)):
         param.append(data[k][0][start:end])
         bparam.append(data[k][1][0])
         value.append(data[k][2][0])
-    return param, bparam, value
+        quality.append(data[k][3][0])
+    return param, bparam, value, quality
 
 
 def cosine_data_transform(data) -> Tuple:
@@ -96,6 +98,7 @@ def read_data(path):
                         flatten_util.ravel_pytree(obj[0])[0],
                         flatten_util.ravel_pytree(obj[1])[0],
                         flatten_util.ravel_pytree(obj[2])[0],
+                        flatten_util.ravel_pytree(obj[3])[0],
                     ]
                 )
     return data
@@ -138,24 +141,26 @@ def bif_plot(dpath, func, n=3):
         "YlGn",
     ]
     # cmaps = ['coolwarm', 'PuOr']
-
+    fig, ax = plt.subplots()
     for i in range(n):
         _path = f"{dpath}/version_{i}.json"
         data = read_data(_path)
-        y, x, z = func(data)
+        y, x, z, q = func(data)
         # plt.plot(x, y)
-        plt.scatter(x, y, c=z, cmap=cmaps[i] + "_r", alpha=1.0)
-        plt.plot(x, y, alpha=1.0)
+        ax.scatter(x, y, c=z, cmap=cmaps[i] + "_r", alpha=1.0)
+        ax.plot(x, y, alpha=1.0)
+        circles = plt.Circle((x[-1], y[-1]), q[-1]/max(q), color='r', fill=False, clip_on=False)
+        ax.add_patch(circles)
 
-    plt.ylabel(f"{func.__name__} Network Parameters")
-    plt.xlabel(f"Continuation Parameter")
+    ax.set_ylabel(f"{func.__name__} Network Parameters")
+    ax.set_xlabel(f"Continuation Parameter")
 
     sm = plt.cm.ScalarMappable(
         cmap=cmaps[1] + "_r", norm=plt.Normalize(vmin=min(z), vmax=max(z))
     )
-    plt.colorbar(sm)
     clb = plt.colorbar(sm)
     clb.ax.set_title('Train Loss')
+
     plt.show()
     plt.clf()
 
@@ -199,8 +204,8 @@ def bif_plotv(path, func):
 
 if __name__ == "__main__":
 
-    path = f"/opt/ml/output/data_c/parc"
-    bif_plot(path, pick_array, 1)
+    path = f"/opt/ml/output/toy/sigmoid/"
+    bif_plot(path, pick_array, 5)
     # bif_plotv(path, norm_data_transform)
     #bif_plot(path, pick_array, 5)
     # bif_plotv(path, norm_data_transform)

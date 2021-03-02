@@ -30,7 +30,7 @@ import os
 from os import path
 import struct
 import urllib.request
-
+import cv2
 import numpy as np
 
 
@@ -90,11 +90,19 @@ def mnist_raw():
     return train_images, train_labels, test_images, test_labels
 
 
+def resize(train_images):
+    train_data = []
+    for img in train_images:
+        resized_img = cv2.resize(img, (6, 6))
+        train_data.append(resized_img)
+    return np.asarray(train_data)
+
 def mnist(permute_train=False):
     """Download, parse and process MNIST data to unit scale and one-hot labels."""
 
     train_images, train_labels, test_images, test_labels = mnist_raw()
-
+    train_images = resize(train_images)
+    test_images = resize(test_images)
     train_images = _partial_flatten(train_images) / np.float32(255.0)
     test_images = _partial_flatten(test_images) / np.float32(255.0)
     train_labels = _one_hot(train_labels, 10)

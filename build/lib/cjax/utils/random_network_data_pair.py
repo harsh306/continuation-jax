@@ -6,6 +6,7 @@ from jax import random
 import jax.numpy as np
 from jax.experimental import stax
 import numpy.random as npr
+from cjax.utils.custom_nn import HomotopyDense
 
 
 def generate_data_01():

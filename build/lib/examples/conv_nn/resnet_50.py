@@ -1,8 +1,5 @@
 import numpy.random as npr
 
-import jax.numpy as np
-from jax import jit, grad, random
-from jax.experimental import optimizers
 from jax.experimental import stax
 from jax.experimental.stax import (
     AvgPool,
@@ -20,16 +17,11 @@ from jax.experimental.stax import (
 )
 
 
-from examples.abstract_problem import AbstractProblem
-from typing import Tuple
+from cjax.utils.abstract_problem import AbstractProblem
 import jax.numpy as np
-from jax import grad, jit, vmap
 from jax import random
 from jax.experimental.optimizers import l2_norm
-from jax.scipy.special import logsumexp
 from jax.tree_util import *
-import jax
-
 
 batch_size = 8
 num_classes = 1001

@@ -7,7 +7,7 @@ from cjax.continuation.methods.corrector.perturbed_constrained_fixed_corrector i
 import jax.numpy as np
 from jax.tree_util import *
 import copy
-from cjax.utils import profile
+from cjax.utils.profiler import profile
 import gc
 from jax.experimental.optimizers import l2_norm
 
@@ -64,11 +64,13 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
             self._state_wrap.counter = i
             self._bparam_wrap.counter = i
             self._value_wrap.counter = i
+            self._quality_wrap.counter = i
             self.sw.write(
                 [
                     self._state_wrap.get_record(),
                     self._bparam_wrap.get_record(),
                     self._value_wrap.get_record(),
+                    self._quality_wrap.get_record()
                 ]
             )
 
@@ -90,7 +92,7 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
 
             self.prev_secant_direction = predictor.secant_direction
 
-            self.hparams['sphere_radius'] = 2*self.hparams['omega']*l2_norm(predictor.secant_direction)
+            self.hparams['sphere_radius'] = self.hparams['sphere_radius_m']*self.hparams['omega']*l2_norm(predictor.secant_direction)
             concat_states = [
                 predictor.state,
                 predictor.bparam,
@@ -126,15 +128,14 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
             ) = (
                 corrector.correction_step()
             )  # TODO: make predictor corrector similar api's
-
-
-
+            # TODO: Enable MLFlow
             bparam = tree_map(self.clip_lambda_max, bparam)
             bparam = tree_map(self.clip_lambda_min, bparam)
             value = self.value_func(state, bparam)
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
             self._value_wrap.state = value
+            self._quality_wrap.state = quality
 
             del corrector
             del concat_states
@@ -145,6 +146,7 @@ class PerturbedPseudoArcLenFixedContinuation(PseudoArcLenContinuation):
                         self._state_wrap.get_record(),
                         self._bparam_wrap.get_record(),
                         self._value_wrap.get_record(),
+                        self._quality_wrap.get_record()
                     ]
                 )
                 break

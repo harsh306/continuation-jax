@@ -1,8 +1,7 @@
 import jax.numpy as np
 import numpy as onp
 import numpy.random as npr
-from jax import random
-from examples.abstract_problem import AbstractProblem
+from cjax.utils.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
 
 import jax.numpy as jnp

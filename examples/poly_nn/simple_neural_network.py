@@ -1,7 +1,6 @@
-from examples.abstract_problem import AbstractProblem
-from typing import Tuple
+from cjax.utils.abstract_problem import AbstractProblem
 import jax.numpy as np
-from jax import grad, jit, vmap
+from jax import vmap
 from jax import random
 from jax.scipy.special import logsumexp
 from jax.tree_util import *

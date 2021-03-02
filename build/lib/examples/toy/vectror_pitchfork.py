@@ -1,10 +1,7 @@
 import jax.numpy as np
-from jax import grad
 from jax.config import config
-from typing import Tuple
-from examples.abstract_problem import AbstractProblem
+from cjax.utils.abstract_problem import AbstractProblem
 from jax.tree_util import *
-from jax.experimental.optimizers import l2_norm
 
 config.update("jax_debug_nans", True)
 

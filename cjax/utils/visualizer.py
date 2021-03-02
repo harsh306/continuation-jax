@@ -204,7 +204,7 @@ def bif_plotv(path, func):
 
 if __name__ == "__main__":
 
-    path = f"/opt/ml/output/pca_ae/parc/sigmoid3/"
+    path = f"/opt/ml/output/toy/sigmoid/"
     bif_plot(path, pick_array, 5)
     # bif_plotv(path, norm_data_transform)
     #bif_plot(path, pick_array, 5)

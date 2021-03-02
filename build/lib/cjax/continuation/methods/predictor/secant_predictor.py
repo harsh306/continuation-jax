@@ -90,7 +90,7 @@ class SecantPredictor(Predictor):
         secant_direction.update(
             {
                 "state": pytree_element_mul(
-                    state_sub, net_spacing_param/(l2_norm(state_sub) + 1e-2)
+                    state_sub, net_spacing_param/(l2_norm(state_sub))
                 )
             }
         )

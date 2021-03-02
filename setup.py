@@ -18,7 +18,7 @@ install_requires = [
 
 setuptools.setup(
     name="continuation_jax",  # Replace with your own username
-    version="0.0.1",
+    version="0.0.2",
     author="Harsh Nilesh Pathak",
     author_email="harshnpathak@gmail.com",
     description="Continuation Methods for Deep Neural Networks.",

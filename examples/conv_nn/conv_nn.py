@@ -1,16 +1,9 @@
-from jax.experimental import stax
-from jax.experimental.stax import BatchNorm, Conv, Dense, Flatten, Relu, LogSoftmax
-
-from examples.abstract_problem import AbstractProblem
-from typing import Tuple
+from cjax.utils.abstract_problem import AbstractProblem
 import jax.numpy as np
-from jax import grad, jit, vmap
 from jax import random
 from jax.experimental.optimizers import l2_norm
-from jax.scipy.special import logsumexp
 from jax.tree_util import *
 from flax import linen as nn  # The Linen API
-from flax import optim
 import jax
 import numpy.random as npr
 from cjax.utils import datasets

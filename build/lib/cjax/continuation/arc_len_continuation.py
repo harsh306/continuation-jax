@@ -6,9 +6,9 @@ from cjax.continuation.methods.corrector.constrained_corrector import (
 )
 from jax import jit, grad
 import gc
-from cjax.utils import profile
+from cjax.utils.profiler import profile
 from cjax.optimizer.optimizer import OptimizerCreator
-
+from jax.experimental.optimizers import l2_norm
 
 class PseudoArcLenContinuation(Continuation):
     # May be refactor to only one continuation TODO
@@ -43,6 +43,7 @@ class PseudoArcLenContinuation(Continuation):
         self.hparams = hparams
 
         self._value_wrap = StateVariable(self.objective(state, bparam), counter)
+        self._quality_wrap = StateVariable(l2_norm(self._state_wrap.state), counter)
 
         # optimizer
         self.opt = OptimizerCreator(
