@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Any
 import jsonlines
 import json
 import jax.numpy as np
@@ -9,7 +9,7 @@ import glob, os
 class StateVariable:
     """To track the state of problem"""
 
-    def __init__(self, state: list, counter: int):
+    def __init__(self, state: Any, counter: int):
         self._state = state
         self._counter = counter
 

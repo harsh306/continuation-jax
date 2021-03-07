@@ -82,6 +82,7 @@ class PerturbedFixedCorrecter(Corrector):
         return lrate
 
     @staticmethod
+    @jit
     def _perform_perturb_by_projection(
         _state_secant_vector,
         _state_secant_c2,
@@ -103,7 +104,7 @@ class PerturbedFixedCorrecter(Corrector):
         #     lambda a: a + random.uniform(key, a.shape),
         #     pytree_zeros_like(n),
         # )
-        print(key)
+        #print(key)
         u = tree_map(
             lambda a: a + random.normal(key, a.shape),
             pytree_ones_like(n),
@@ -116,13 +117,14 @@ class PerturbedFixedCorrecter(Corrector):
         proj_of_u_on_n = projection_affine(len(n), u, n, u_0)
 
         point_on_plane = u + pytree_sub(tmp, proj_of_u_on_n)  ## state= pred_state + n
-        #inv_vec = np.array([-1.0, 1.0])
+        noise = random.uniform(key, [1], minval=-0.03, maxval=0.03)
+        inv_vec = np.array([-1.0 + noise, 1.0 + noise])
         parc = pytree_element_mul(
             pytree_normalized(pytree_sub(point_on_plane, tmp)),
-            1.0#inv_vec[(counter % 2)],
+            inv_vec[(counter % 2)],
         )
         point_on_plane_2 = tmp + sphere_radius* parc
-        print('point on plane ',point_on_plane_2)
+        #print('point on plane ',point_on_plane_2, inv_vec)
         new_sample = sample_unravel(point_on_plane_2)
         state_stack = {}
         state_stack.update({"state": new_sample[0]})
@@ -147,8 +149,7 @@ class PerturbedFixedCorrecter(Corrector):
         Returns:
           (state: problem parameters, bparam: continuation parameter) Tuple
         """
-        _, key = random.split(random.PRNGKey(self.key_state+npr.randint(1,100)))
-        del _
+
         quality = 1.0
         if self.hparams["meta"]['dataset'] == 'mnist':  # TODO: make it generic
             batch_data = next(self.data_loader)
@@ -157,62 +158,79 @@ class PerturbedFixedCorrecter(Corrector):
         N_opt = 10
         stop = False
         corrector_omega = 1.0
+        N_fits = 3
         # bparam_grads = pytree_zeros_like(self._bparam)
-        print('the radius', self.sphere_radius)
-        self._parc_vec, self.state_stack = self._perform_perturb_by_projection(
-            self._state_secant_vector,
-            self._state_secant_c2,
-            key,
-            self.pred_prev_state,
-            self._state,
-            self._bparam,
-            self.counter,
-            self.sphere_radius,
-            batch_data
-        )
-        if self.hparams['_evaluate_perturb']:
-            self._evaluate_perturb() # does every time
+        #print('the radius', self.sphere_radius)
+        N_quality = [5.0 for _ in range(N_fits)]
+        N_states = [self._state for _ in range(N_fits)]
+        N_bparams = [self._bparam for _ in range(N_fits)]
+        for i_n in range(N_fits):
+            _, key = random.split(random.PRNGKey(self.key_state+i_n+ npr.randint(1, (i_n+1)*10)))
+            del _
+            self._parc_vec, self.state_stack = self._perform_perturb_by_projection(
+                self._state_secant_vector,
+                self._state_secant_c2,
+                key,
+                self.pred_prev_state,
+                self._state,
+                self._bparam,
+                i_n,
+                self.sphere_radius,
+                batch_data
+            )
+            # if self.hparams['_evaluate_perturb']:
+            #     self._evaluate_perturb() # does every time
+            #
+            N_states[i_n] = self.state_stack['state']
+            N_bparams[i_n] = self.state_stack['bparam']
 
-        for j in range(self.descent_period):
-            for b_j in range(self.num_batches):
+            for j in range(self.descent_period):
+                for b_j in range(self.num_batches):
 
-                # grads = self.compute_grad_fn(self._state, self._bparam, batch_data)
-                # self._state = self.opt.update_params(self._state, grads[0])
-                state_grads, bparam_grads = self.compute_min_grad_fn(
-                    self._state,
-                    self._bparam,
-                    self._lagrange_multiplier,
-                    self._state_secant_c2,
-                    self._state_secant_vector,
-                    batch_data,
-                    self.delta_s,
-                )
+                    # grads = self.compute_grad_fn(self._state, self._bparam, batch_data)
+                    # self._state = self.opt.update_params(self._state, grads[0])
+                    state_grads, bparam_grads = self.compute_min_grad_fn(
+                        N_states[i_n],
+                        N_bparams[i_n],
+                        self._lagrange_multiplier,
+                        self._state_secant_c2,
+                        self._state_secant_vector,
+                        batch_data,
+                        self.delta_s,
+                    )
 
-                if self.hparams['adaptive']:
-                    self.opt.lr = self.exp_decay(j, self.hparams['natural_lr'])
-                    quality = l2_norm(state_grads) #+l2_norm(bparam_grads)
-                    if quality>self.hparams['quality_thresh']:
-                        pass
-                        #print(f"quality {quality}, {self.opt.lr}, {bparam_grads} ,{j}")
-                    else:
-                        if N_opt>(j+1):  # To get around folds slowly
-                            corrector_omega = min(N_opt/(j+1), 2.0)
+                    if self.hparams['adaptive']:
+                        self.opt.lr = self.exp_decay(j, self.hparams['natural_lr'])
+                        quality = l2_norm(state_grads) #+l2_norm(bparam_grads)
+                        if quality>self.hparams['quality_thresh']:
+                            pass
+                            #print(f"quality {quality}, {self.opt.lr}, {bparam_grads} ,{j}")
                         else:
-                            corrector_omega = max(N_opt/(j+1), 0.5)
-                        stop = True
-                        print(f"quality {quality} stopping at , {j}th step")
-                    state_grads = clip_grads(state_grads, self.hparams['max_clip_grad'])
-                    bparam_grads = clip_grads(bparam_grads, self.hparams['max_clip_grad'])
+                            if N_opt>(j+1):  # To get around folds slowly
+                                corrector_omega = min(N_opt/(j+1), 2.0)
+                            else:
+                                corrector_omega = max(N_opt/(j+1), 0.5)
+                            stop = True
+                            print(f"quality {quality} stopping at , {j}th step")
+                        state_grads = clip_grads(state_grads, self.hparams['max_clip_grad'])
+                        bparam_grads = clip_grads(bparam_grads, self.hparams['max_clip_grad'])
 
-                self._bparam = self.opt.update_params(self._bparam, bparam_grads, j)
-                self._state = self.opt.update_params(self._state, state_grads, j)
+                    N_bparams[i_n] = self.opt.update_params(N_bparams[i_n], bparam_grads, j)
+                    N_states[i_n] = self.opt.update_params(N_states[i_n], state_grads, j)
+                    N_quality[i_n] = quality
+                    if stop:
+                        break
+                    if self.hparams["meta"]['dataset'] == 'mnist': # TODO: make it generic
+                        batch_data = next(self.data_loader)
                 if stop:
                     break
-                if self.hparams["meta"]['dataset'] == 'mnist': # TODO: make it generic
-                    batch_data = next(self.data_loader)
-            if stop:
-                break
 
-
+        m = min(N_quality)
+        indicies = [i for i, j in enumerate(N_quality) if j == m]
+        index = npr.randint(0,len(indicies))
+        cheapest = indicies[index]
+        #N_quality.index((min(N_quality)))
+        self._state = N_states[cheapest]
+        self._bparam = N_bparams[cheapest]
         value = self.value_fn(self._state, self._bparam, batch_data) # Todo: why only final batch data
         return self._state, self._bparam, quality, value, corrector_omega

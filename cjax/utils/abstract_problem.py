@@ -8,7 +8,7 @@ from cjax.utils.math_trees import pytree_dot, pytree_sub
 class AbstractProblem(ABC):
     @staticmethod
     @abstractmethod
-    def objective(params, bparam) -> float:
+    def objective(params, bparam, batch_input) -> float:
         pass
 
     @abstractmethod
@@ -35,10 +35,11 @@ class ProblemWraper:
         lagrange_multiplier: float,
         c2: list,
         secant: list,
+        batch_input=0.0,
         delta_s=0.02,
     ) -> float:
         return np.mean(
-            self.objective(params, bparam)
+            self.objective(params, bparam, batch_input)
             + (
                 np.multiply(
                     lagrange_multiplier,

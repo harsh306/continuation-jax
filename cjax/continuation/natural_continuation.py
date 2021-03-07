@@ -22,17 +22,15 @@ class NaturalContinuation(Continuation):
         self._bparam_wrap = StateVariable(bparam, counter)
         self.objective = objective
         self.value_func = jit(self.objective)
-        self._value_wrap = StateVariable(self.objective(state, bparam), counter)
+        self._value_wrap = StateVariable(2.0, counter)
+        self._quality_wrap = StateVariable(0.25, counter)
         self.sw = None
         self.hparams = hparams
-        self.opt = OptimizerCreator(
-            opt_string=hparams["meta"]["optimizer"], learning_rate=hparams["natural_lr"]
-        ).get_optimizer()
         self.continuation_steps = hparams["continuation_steps"]
 
         self.output_file = hparams["meta"]["output_dir"]
         self._delta_s = hparams["delta_bparams"]
-        self.grad_fn = jit(grad(self.objective, argnums=[0]))
+        self.grad_fn = jit(grad(self.objective, argnums=[0])) # TODO: vmap is not fully supported with stax
 
     @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):
@@ -48,11 +46,13 @@ class NaturalContinuation(Continuation):
             self._state_wrap.counter = i
             self._bparam_wrap.counter = i
             self._value_wrap.counter = i
+            self._quality_wrap.counter = i
             self.sw.write(
                 [
                     self._state_wrap.get_record(),
                     self._bparam_wrap.get_record(),
                     self._value_wrap.get_record(),
+                    self._quality_wrap.get_record(),
                 ]
             )
 
@@ -66,13 +66,13 @@ class NaturalContinuation(Continuation):
             del predictor
             gc.collect()
             corrector = UnconstrainedCorrector(
-                optimizer=self.opt,
                 objective=self.objective,
                 concat_states=concat_states,
                 grad_fn=self.grad_fn,
-                warmup_period=self.hparams["warmup_period"],
+                value_fn=self.value_func,
+                hparams=self.hparams,
             )
-            state, bparam = corrector.correction_step()
+            state, bparam, quality, value = corrector.correction_step()
 
             clip_lambda = lambda g: np.where(
                 (g > self.hparams["lambda_max"]), self.hparams["lambda_max"], g
@@ -83,18 +83,19 @@ class NaturalContinuation(Continuation):
             )
             bparam = tree_map(clip_lambda, bparam)
 
-            value = self.value_func(state, bparam)
+
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
             self._value_wrap.state = value
+            self._quality_wrap.state = quality
             del corrector
             gc.collect()
-            if self._bparam_wrap.state[0] >= self.hparams["lambda_max"]:
-                self.sw.write(
-                    [
-                        self._state_wrap.get_record(),
-                        self._bparam_wrap.get_record(),
-                        self._value_wrap.get_record(),
-                    ]
-                )
-                break
+            # if self._bparam_wrap.state[0] >= self.hparams["lambda_max"]:
+            #     self.sw.write(
+            #         [
+            #             self._state_wrap.get_record(),
+            #             self._bparam_wrap.get_record(),
+            #             self._value_wrap.get_record(),
+            #         ]
+            #     )
+            #     break

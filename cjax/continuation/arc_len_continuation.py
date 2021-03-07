@@ -42,7 +42,7 @@ class PseudoArcLenContinuation(Continuation):
 
         self.hparams = hparams
 
-        self._value_wrap = StateVariable(self.objective(state, bparam), counter)
+        self._value_wrap = StateVariable(1.0, counter) #TODO: fix with a static batch (test/train)
         self._quality_wrap = StateVariable(l2_norm(self._state_wrap.state), counter)
 
         # optimizer

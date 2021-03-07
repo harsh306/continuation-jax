@@ -5,10 +5,11 @@ from jax import jit
 
 
 class SecantPredictor(Predictor):
-    def __init__(self, concat_states, delta_s, omega, net_spacing_param, net_spacing_bparam, hparams):
+    def __init__(self, concat_states, delta_s, prev_delta_s, omega, net_spacing_param, net_spacing_bparam, hparams):
         super().__init__(concat_states)
         self._prev_state = None
         self._prev_bparam = None
+        self.prev_delta_s = prev_delta_s
         self.delta_s = delta_s
         self.omega = omega
         self.net_spacing_param = net_spacing_param
@@ -84,7 +85,10 @@ class SecantPredictor(Predictor):
 
     @staticmethod
     #@jit
-    def _compute_secant(_state, _bparam, _prev_state, _prev_bparam, net_spacing_param, net_spacing_bparam, omega):
+    def _compute_secant(_state, _bparam, _prev_state,
+                        _prev_bparam, net_spacing_param,
+                        net_spacing_bparam, omega,
+                        delta_s, prev_delta_s):
         secant_direction = {}
         state_sub = pytree_sub(_state, _prev_state)
         bparam_sub = pytree_sub(_bparam, _prev_bparam)
@@ -92,7 +96,7 @@ class SecantPredictor(Predictor):
         secant_direction.update(
             {
                 "state": pytree_element_mul(
-                    state_sub, net_spacing_param/(l2_norm(state_sub) + np.square(l2_norm(bparam_sub)))
+                    state_sub, delta_s/prev_delta_s
                 )
             }
         )
@@ -100,26 +104,10 @@ class SecantPredictor(Predictor):
         secant_direction.update(
             {
                 "bparam": pytree_element_mul(
-                    bparam_sub, net_spacing_bparam/(l2_norm(state_sub) + np.square(l2_norm(bparam_sub)))
+                    bparam_sub, delta_s/prev_delta_s
                 )
             }
         )
-
-        # secant_direction.update(
-        #     {
-        #         "state": pytree_element_mul(
-        #             state_sub, net_spacing_param / (l2_norm(state_sub) )
-        #         )
-        #     }
-        # )
-        #
-        # secant_direction.update(
-        #     {
-        #         "bparam": pytree_element_mul(
-        #             bparam_sub, net_spacing_bparam / (np.square(l2_norm(bparam_sub)))
-        #         )
-        #     }
-        # )
 
         return secant_direction
 
@@ -132,8 +120,9 @@ class SecantPredictor(Predictor):
 
         self.secant_direction = self._compute_secant(self._state, self._bparam, self._prev_state,
                                                      self._prev_bparam, self.net_spacing_param,
-                                                     self.net_spacing_bparam, self.omega)
-        # self._choose_direction()
+                                                     self.net_spacing_bparam, self.omega,
+                                                     self.delta_s, self.prev_delta_s)
+        #self._choose_direction()
         try_state = None
         try_bparam = None
         for u in range(self.hparams['retry']):
