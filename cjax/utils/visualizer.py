@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
+import matplotlib as mplt
 import jsonlines
 import numpy as onp
 from cjax.utils.math_trees import *
 from typing import Tuple
+import pandas as pd
+import os
+
 
 """
 cmaps['Sequential'] = [
@@ -103,6 +107,12 @@ def read_data(path):
                 )
     return data
 
+def read_data_pandas(path):
+    data = pd.read_json(path, orient='records', lines=True)
+    data = data.applymap(lambda a: [flatten_util.ravel_pytree(v)[0] for k, v in a.items()])
+    return data.tolist()
+
+
 
 # TODO
 def export():
@@ -142,21 +152,25 @@ def bif_plot(dpath, func, n=3):
     ]
     # cmaps = ['coolwarm', 'PuOr']
     fig, ax = plt.subplots()
-    for i in range(n):
-        _path = f"{dpath}/version_{i}.json"
+    files = os.listdir(dpath)
+    for i, file in enumerate(files):
+        _path = f"{dpath}/{file}"
+        print(_path)
         data = read_data(_path)
         y, x, z, q = func(data)
         # plt.plot(x, y)
         ax.scatter(x, y, c=z, cmap=cmaps[i] + "_r", alpha=1.0)
         ax.plot(x, y, alpha=1.0)
+
+        # ax.errorbar(x, y , yerr=q/max(q), uplims=True, lolims=True,
+        #              label='uplims=True, lolims=True')
         circles = plt.Circle((x[-1], y[-1]), q[-1]/max(q), color='r', fill=False, clip_on=False)
         ax.add_patch(circles)
 
     ax.set_ylabel(f"{func.__name__} Network Parameters")
     ax.set_xlabel(f"Continuation Parameter")
-
     sm = plt.cm.ScalarMappable(
-        cmap=cmaps[1] + "_r", norm=plt.Normalize(vmin=min(z), vmax=max(z))
+        cmap=cmaps[1] + "_r", norm=mplt.colors.LogNorm(vmin=min(z), vmax=0.050)
     )
     clb = plt.colorbar(sm)
     clb.ax.set_title('Train Loss')
@@ -194,7 +208,7 @@ def bif_plotv(path, func):
     plt.ylabel(f"{func.__name__} Network Parameters")
     plt.xlabel(f"Continuation Parameter")
     sm = plt.cm.ScalarMappable(
-        cmap="coolwarm_r", norm=plt.Normalize(vmin=min(z), vmax=max(z))
+        cmap="coolwarm_r", norm=mplt.colors.LogNorm(vmin=min(z), vmax=max(z))
     )
     clb = plt.colorbar(sm)
     clb.ax.set_title('Train Loss')
@@ -204,8 +218,13 @@ def bif_plotv(path, func):
 
 if __name__ == "__main__":
 
-    path = f"/opt/ml/output/toy/sigmoid/"
+    path = f"/opt/ml/output/data_c/parc/"
     bif_plot(path, pick_array, 5)
+    #d = read_data(path)
+    # print(len(d))
+
+    #d1 = read_data_pandas(path)
+
     # bif_plotv(path, norm_data_transform)
     #bif_plot(path, pick_array, 5)
     # bif_plotv(path, norm_data_transform)

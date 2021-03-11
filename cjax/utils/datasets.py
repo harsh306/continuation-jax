@@ -32,9 +32,17 @@ import struct
 import urllib.request
 import cv2
 import numpy as np
-
+import numpy.random as npr
 
 _DATA = "/opt/ml/tmp/jax_example_data/"
+
+
+
+
+def synth_batches(input_shape):
+    while True:
+        images = np.random.rand(*input_shape).astype("float32")
+        yield images
 
 
 def _download(url, filename):
@@ -90,19 +98,20 @@ def mnist_raw():
     return train_images, train_labels, test_images, test_labels
 
 
-def resize(train_images):
+def img_resize(train_images):
     train_data = []
     for img in train_images:
         resized_img = cv2.resize(img, (6, 6))
         train_data.append(resized_img)
     return np.asarray(train_data)
 
-def mnist(permute_train=False):
+def mnist(permute_train=False, resize=False):
     """Download, parse and process MNIST data to unit scale and one-hot labels."""
 
     train_images, train_labels, test_images, test_labels = mnist_raw()
-    train_images = resize(train_images)
-    test_images = resize(test_images)
+    if resize:
+        train_images = img_resize(train_images)
+        test_images = img_resize(test_images)
     train_images = _partial_flatten(train_images) / np.float32(255.0)
     test_images = _partial_flatten(test_images) / np.float32(255.0)
     train_labels = _one_hot(train_labels, 10)
@@ -114,3 +123,40 @@ def mnist(permute_train=False):
         train_labels = train_labels[perm]
 
     return train_images, train_labels, test_images, test_labels
+
+def meta_mnist(batch_size):
+    train_len = 60000
+    test_len = 10000
+    num_complete_batches, leftover = divmod(train_len, batch_size)
+    num_batches = num_complete_batches + bool(leftover)
+    return locals()
+
+
+def get_mnist_data(batch_size, resize):
+    train_images, train_labels, test_images, test_labels = mnist_raw()
+    if resize:
+        train_images = img_resize(train_images)
+        test_images = img_resize(test_images)
+    train_images = _partial_flatten(train_images) / np.float32(255.0)
+    test_images = _partial_flatten(test_images) / np.float32(255.0)
+    train_labels = _one_hot(train_labels, 10)
+    test_labels = _one_hot(test_labels, 10)
+
+    total_data_len = train_images.shape[0]
+    num_complete_batches, leftover = divmod(total_data_len, batch_size)
+    num_batches = num_complete_batches + bool(leftover)
+
+    rng = npr.RandomState(0)
+    while True:
+        perm = rng.permutation(total_data_len)
+        for i in range(num_batches):
+            batch_idx = perm[i * batch_size:(i + 1) * batch_size]
+            yield train_images[batch_idx], train_labels[batch_idx]
+
+
+if __name__ == '__main__':
+    train_images, _, test_images, _ = mnist()
+    print(train_images.shape[0])
+    print(test_images.shape[0])
+    #z = meta_mnist(5000)
+    print(meta_mnist(5000)['num_batches'])

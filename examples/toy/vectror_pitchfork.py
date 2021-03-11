@@ -10,10 +10,10 @@ class QuadraticProblem(AbstractProblem):
     def __init__(self):
         self.inputs = None
         self.outputs = None
-        self.HPARAMS_PATH = "examples/toy/hparams.json"
+        self.HPARAMS_PATH = "hparams.json"
 
     @staticmethod
-    def objective(params: list, bparam: list) -> float:
+    def objective(params: list, bparam: list, batch_input) -> float:
         result = 0.0
         for w1 in params:
             result += np.mean(
@@ -48,12 +48,14 @@ class QuadraticProblem(AbstractProblem):
         bparam = [np.array([3.0])]
         return state, bparam
 
+
+
 class SigmoidFold(AbstractProblem):
     def __init__(self):
-        self.HPARAMS_PATH = "examples/toy/hparams.json"
+        self.HPARAMS_PATH = "hparams.json"
 
     @staticmethod
-    def objective(params, bparam) -> float:
+    def objective(params, bparam, batch_input) -> float:
         targets = np.multiply(0.5, params[0])
         logits = np.divide(1, 1+np.exp(-(np.multiply(5.0, params[0]) + bparam[0])))
         loss = np.mean(np.square(np.subtract(logits, targets)))
@@ -66,10 +68,10 @@ class SigmoidFold(AbstractProblem):
 
     def initial_values(self):
         states = [
-            [np.array([2.1])],
-            [np.array([2.00])],
+            [np.array([0.61])],
+            [np.array([0.62])],
         ]
-        bparams = [[np.array([1.0])], [np.array([1.1])]]
+        bparams = [[np.array([-2.71])], [np.array([-2.68])]]
 
         return states, bparams
 
@@ -79,10 +81,10 @@ class PitchForkProblem(AbstractProblem):
     def __init__(self):
         self.inputs = None
         self.outputs = None
-        self.HPARAMS_PATH = "examples/toy/hparams.json"
+        self.HPARAMS_PATH = "hparams.json"
 
     @staticmethod
-    def objective(params: list, bparam: list) -> float:
+    def objective(params: list, bparam: list, batch_input) -> float:
         result = 25.0
         for w1 in params:
             result += np.mean(
@@ -97,14 +99,14 @@ class PitchForkProblem(AbstractProblem):
         :return:
         """
         states = [
-            [np.array([0.05])],
-            [np.array([0.03])],
+            [np.array([0.01])],
+            [np.array([0.002])],
         ]
         # states = [
         #     [np.array([-1.734])],
         #     [np.array([-1.632])],
         # ]
-        bparams = [[np.array([1.1])], [np.array([0.8])]]
+        bparams = [[np.array([3.1])], [np.array([2.8])]]
 
         return states, bparams
 
@@ -131,7 +133,7 @@ class VectorPitchFork(AbstractProblem):
         self.HPARAMS_PATH = "examples/toy/hparams.json"
 
     @staticmethod
-    def objective(state, bparam):
+    def objective(state, bparam, batch_input):
         """
         Computes scalar objective.
         :param params: pytree PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
