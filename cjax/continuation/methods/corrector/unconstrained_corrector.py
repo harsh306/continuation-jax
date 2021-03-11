@@ -43,8 +43,8 @@ class UnconstrainedCorrector(Corrector):
         self._assign_states()
         quality = 1.0
         for k in range(self.warmup_period):
-            grads = self.grad_fn(self._state, self._bparam, next(iter(self.data_loader)))
+            grads = self.grad_fn(self._state, self._bparam, next(self.data_loader))
             self._state = self.opt.update_params(self._state, grads[0])
             quality = l2_norm(grads)
-        value = self.value_fn(self._state, self._bparam, next(iter(self.data_loader)))
+        value = self.value_fn(self._state, self._bparam, next(self.data_loader))
         return self._state, self._bparam, quality, value

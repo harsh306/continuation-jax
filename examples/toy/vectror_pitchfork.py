@@ -99,8 +99,8 @@ class PitchForkProblem(AbstractProblem):
         :return:
         """
         states = [
-            [np.array([0.05])],
-            [np.array([0.03])],
+            [np.array([0.01])],
+            [np.array([0.002])],
         ]
         # states = [
         #     [np.array([-1.734])],

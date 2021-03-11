@@ -70,7 +70,11 @@ if __name__ == "__main__":
     
     bif_plot(hparams['output_dir'], pick_array, hparams['n_perturbs'])
 ```
-   
+
+#### Note on Hyperparameters   
+
+#### Papers:
+
 
 #### Contact: 
 `harshnpathak@gmail.com`

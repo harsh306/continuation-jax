@@ -12,8 +12,8 @@ from jax.tree_util import tree_map
 from cjax.utils.custom_nn import constant_2d, HomotopyDense, v_2d
 from cjax.utils.datasets import mnist, get_mnist_data
 from examples.torch_data import get_data
-batch_size = 40000
-input_shape = (batch_size, 36)
+data_size = 40000
+input_shape = (data_size, 36)
 step_size = 0.1
 num_steps = 10
 code_dim = 1
@@ -22,7 +22,7 @@ npr.seed(7)
 
 train_images, labels, _, _ = mnist(permute_train=True)
 del _
-inputs = train_images[:batch_size]
+inputs = train_images[:data_size]
 del train_images
 
 u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
@@ -36,7 +36,7 @@ init_fun, predict_fun = stax.serial(
     HomotopyDense(out_dim=4, W_init=constant_2d(noisy_I), b_init=zeros),
     Dense(out_dim=input_shape[-1], W_init=v_2d(v_t), b_init=zeros),
 )
-
+del inputs
 #
 # init_fun, predict_fun = stax.serial(
 #     Dense(out_dim=4), Sigmoid,
@@ -72,7 +72,7 @@ class PCATopologyAE(AbstractProblem):
         state_0, bparam_0 = self.initial_value()
         state_1 = tree_map(lambda a: a - 0.08, state_0)
         states = [state_0, state_1]
-        bparam_1 = tree_map(lambda a: a + 0.08, bparam_0)
+        bparam_1 = tree_map(lambda a: a + 0.02, bparam_0)
         bparams = [bparam_0, bparam_1]
         return states, bparams
 

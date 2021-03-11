@@ -9,8 +9,8 @@ from jax.tree_util import tree_map
 from cjax.utils.custom_nn import HomotopyDropout
 from cjax.utils.datasets import mnist
 
-batch_size = 10000
-input_shape = (batch_size, 36)
+data_size = 40000
+input_shape = (data_size, 36)
 npr.seed(7)
 
 def synth_batches():
@@ -22,11 +22,11 @@ def synth_batches():
 # batches = synth_batches()
 # inputs = next(batches)
 
-train_images, labels, _, _ = mnist(permute_train=True)
-del _
-inputs = train_images[:batch_size]
-
-del train_images
+# train_images, labels, _, _ = mnist(permute_train=True, resize=True)
+# del _
+# inputs = train_images[:data_size]
+#
+# del train_images
 
 # u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
 # I = np.eye(v_t.shape[-1])
@@ -45,15 +45,17 @@ _, key = random.split(random.PRNGKey(0))
 
 class DataTopologyAE(AbstractProblem):
     def __init__(self):
-        self.HPARAMS_PATH = "examples/data_cont_ae/hparams.json"
+        self.HPARAMS_PATH = "hparams.json"
 
     @staticmethod
-    def objective(params, bparam) -> float:
+    def objective(params, bparam, batch) -> float:
+        x, _ = batch
+        x = np.reshape(x, (x.shape[0], -1))
         logits = predict_fun(
-            params, inputs, bparam=bparam[0], rng=key
+            params, x, bparam=bparam[0], rng=key
         )
-        keep = random.bernoulli(key, bparam[0], inputs.shape)
-        inputs_d = np.where(keep, inputs, 0)
+        keep = random.bernoulli(key, bparam[0], x.shape)
+        inputs_d = np.where(keep, x, 0)
 
         loss = np.mean(np.square((np.subtract(logits, inputs_d))))
         # loss += 0.1*(l2_norm(params) + l2_norm(bparam))

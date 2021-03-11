@@ -56,10 +56,6 @@ class PerturbedFixedCorrecter(Corrector):
         self.sphere_radius = hparams["sphere_radius"]
         self.counter = counter
         self.value_fn = value_fn
-        # self.data_loader = iter(get_data(dataset=hparams["meta"]['dataset'],
-        #                             batch_size=hparams['batch_size'],
-        #                             num_workers=hparams['data_workers'],
-        #                             train_only=True, test_only=False))
         if hparams["meta"]['dataset'] =='mnist':
             self.data_loader = iter(get_mnist_data(batch_size=hparams['batch_size'],
                                                    resize=hparams['resize_to_small']))
@@ -104,7 +100,6 @@ class PerturbedFixedCorrecter(Corrector):
         #     lambda a: a + random.uniform(key, a.shape),
         #     pytree_zeros_like(n),
         # )
-        #print(key)
         u = tree_map(
             lambda a: a + random.normal(key, a.shape),
             pytree_ones_like(n),
@@ -124,7 +119,6 @@ class PerturbedFixedCorrecter(Corrector):
             inv_vec[(counter % 2)],
         )
         point_on_plane_2 = tmp + sphere_radius* parc
-        #print('point on plane ',point_on_plane_2, inv_vec)
         new_sample = sample_unravel(point_on_plane_2)
         state_stack = {}
         state_stack.update({"state": new_sample[0]})
@@ -136,12 +130,24 @@ class PerturbedFixedCorrecter(Corrector):
         """Evaluate weather the perturbed vector is orthogonal to secant vector"""
 
         dot = pytree_dot(pytree_normalized(self._parc_vec), pytree_normalized(self._state_secant_vector))
-        if math.isclose(dot, 0.0, abs_tol=0.25):
+        if math.isclose(dot, 0.0, abs_tol=0.15):
             print(f"Perturb was near arc-plane. {dot}")
-            self._state = self.state_stack["state"]
-            self._bparam = self.state_stack["bparam"]
         else:
             print(f"Perturb was not on arc-plane.{dot}")
+
+    @staticmethod
+    def _grouper(iterable, threshold=0.01):
+        prev = None
+        group = []
+        for item in iterable:
+            if not prev or l2_norm(pytree_sub(item, prev)) <= threshold:
+                group.append(item)
+            else:
+                yield group
+                group = [item]
+            prev = item
+        if group:
+            yield group
 
     def correction_step(self) -> Tuple:
         """Given the current state optimize to the correct state.
@@ -155,13 +161,15 @@ class PerturbedFixedCorrecter(Corrector):
             batch_data = next(self.data_loader)
         else:
             batch_data = None
-        N_opt = 10
+        N_opt = self.hparams["guess_ant_steps"]
         stop = False
         corrector_omega = 1.0
-        N_fits = 3
-        # bparam_grads = pytree_zeros_like(self._bparam)
-        #print('the radius', self.sphere_radius)
+        N_fits = self.hparams["n_wall_ants"]
+        threshold = min(self.hparams["max_cluster_threshold"],
+                        self.hparams["sphere_radius_m"]*(self.hparams["max_arc_len"] - self.hparams["min_arc_len"]))
+
         N_quality = [5.0 for _ in range(N_fits)]
+        N_values = [5.0 for _ in range(N_fits)]
         N_states = [self._state for _ in range(N_fits)]
         N_bparams = [self._bparam for _ in range(N_fits)]
         for i_n in range(N_fits):
@@ -178,9 +186,9 @@ class PerturbedFixedCorrecter(Corrector):
                 self.sphere_radius,
                 batch_data
             )
-            # if self.hparams['_evaluate_perturb']:
-            #     self._evaluate_perturb() # does every time
-            #
+            if self.hparams['_evaluate_perturb']:
+                self._evaluate_perturb() # does every time
+
             N_states[i_n] = self.state_stack['state']
             N_bparams[i_n] = self.state_stack['bparam']
 
@@ -204,19 +212,20 @@ class PerturbedFixedCorrecter(Corrector):
                         quality = l2_norm(state_grads) #+l2_norm(bparam_grads)
                         if quality>self.hparams['quality_thresh']:
                             pass
-                            #print(f"quality {quality}, {self.opt.lr}, {bparam_grads} ,{j}")
+                            print(f"quality {quality}, {self.opt.lr}, {bparam_grads} ,{j}")
                         else:
                             if N_opt>(j+1):  # To get around folds slowly
-                                corrector_omega = min(N_opt/(j+1), 2.0)
+                                corrector_omega = min(N_opt/(j+1), 0.5)
                             else:
-                                corrector_omega = max(N_opt/(j+1), 0.5)
+                                corrector_omega = max(N_opt/(j+1), 0.05)
                             stop = True
                             print(f"quality {quality} stopping at , {j}th step")
                         state_grads = clip_grads(state_grads, self.hparams['max_clip_grad'])
                         bparam_grads = clip_grads(bparam_grads, self.hparams['max_clip_grad'])
 
-                    N_bparams[i_n] = self.opt.update_params(N_bparams[i_n], bparam_grads, j)
                     N_states[i_n] = self.opt.update_params(N_states[i_n], state_grads, j)
+                    N_bparams[i_n] = self.opt.update_params(N_bparams[i_n], bparam_grads, j)
+                    N_values[i_n] = self.value_fn(N_states[i_n], N_bparams[i_n], batch_data)
                     N_quality[i_n] = quality
                     if stop:
                         break
@@ -225,11 +234,16 @@ class PerturbedFixedCorrecter(Corrector):
                 if stop:
                     break
 
+        N_state_groups = dict(enumerate(self._grouper(N_states, threshold), 1))
+        print(f"Number of groups: {len(N_state_groups)}")
         m = min(N_quality)
         indicies = [i for i, j in enumerate(N_quality) if j == m]
+        print(f"Number of minima by norm: {len(indicies)}")
+        m = min(N_values)
+        indicies = [i for i, j in enumerate(N_quality) if j == m]
+        print(f"Number of minima by loss: {len(indicies)}")
         index = npr.randint(0,len(indicies))
         cheapest = indicies[index]
-        #N_quality.index((min(N_quality)))
         self._state = N_states[cheapest]
         self._bparam = N_bparams[cheapest]
         value = self.value_fn(self._state, self._bparam, batch_data) # Todo: why only final batch data

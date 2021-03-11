@@ -4,6 +4,7 @@ from cjax.continuation.methods.predictor.arc_secant_predictor import SecantPredi
 from cjax.continuation.methods.corrector.perturb_parc_evolve import (
     PerturbedFixedCorrecter,
 )
+from cjax.continuation.methods.corrector.unconstrained_corrector import UnconstrainedCorrector
 import jax.numpy as np
 from jax.tree_util import *
 import copy
@@ -13,6 +14,7 @@ from jax.experimental.optimizers import l2_norm
 from cjax.continuation.states.state_variables import StateVariable, StateWriter
 from jax import jit, grad
 import numpy.random as npr
+from cjax.utils.math_trees import pytree_element_add
 
 # TODO: make **kwargs availible
 
@@ -50,7 +52,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
 
         self.hparams = hparams
 
-        self._value_wrap = StateVariable(0.2, counter)  # TODO: fix with a static batch (test/train)
+        self._value_wrap = StateVariable(0.06, counter)  # TODO: fix with a static batch (test/train)
         self._quality_wrap = StateVariable(l2_norm(self._state_wrap.state)/10, counter)
 
         # every step hparams
@@ -86,12 +88,28 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
         interact with the states of the mathematical system.
         """
         for i in range(self.continuation_steps):
-
-            print(self._value_wrap.get_record(), self._bparam_wrap.get_record(), self._delta_s)
             self._state_wrap.counter = i
             self._bparam_wrap.counter = i
             self._value_wrap.counter = i
             self._quality_wrap.counter = i
+
+            if i ==0 and self.hparams['natural_start']:
+                print(f" unconstrained solver for 1st step")
+                concat_states = [self._prev_state, pytree_element_add(self._prev_bparam, 0.04)]
+
+                corrector = UnconstrainedCorrector(
+                    objective=self.objective,
+                    concat_states=concat_states,
+                    grad_fn=self.compute_grad_fn,
+                    value_fn=self.value_func,
+                    hparams=self.hparams,
+                )
+                state, bparam, quality, value = corrector.correction_step()
+                self._state_wrap.state = state
+                self._bparam_wrap.state = bparam
+                del corrector, state, bparam, quality, value, concat_states
+
+            print(self._value_wrap.get_record(), self._bparam_wrap.get_record(), self._delta_s)
             self.sw.write(
                 [
                     self._state_wrap.get_record(),
@@ -165,8 +183,8 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
             #self._omega = corrector_omega
             self._prev_delta_s = self._delta_s
             self._delta_s = corrector_omega * self._delta_s
-            self._delta_s = min(self._delta_s, 0.0002)
-            self._delta_s = max(self._delta_s, 0.000002)
+            self._delta_s = min(self._delta_s, self.hparams['max_arc_len'])
+            self._delta_s = max(self._delta_s, self.hparams['min_arc_len'])
             del corrector
             del concat_states
             gc.collect()

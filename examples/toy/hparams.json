@@ -2,14 +2,14 @@
   "meta": {
     "name": "toy",
     "description": "classic numerical continuation examples",
-    "method": "natural",
+    "method": "parc-fix-perturb",
     "optimizer": "gradient-descent",
     "dataset": "None",
     "ascent_optimizer": "gradient-ascent",
     "output_dir": "/opt/ml/output/toy/"
   },
   "continuation_steps": 50,
-  "n_perturbs": 1,
+  "n_perturbs": 2,
   "delta_s": 5e-3,
   "delta_bparams": 0.08,
   "omega": 1.0,
@@ -37,5 +37,6 @@
   "re_tresh": 0.15,
   "batch_size": 2,
   "resize_to_small": true,
+  "natural_start": false,
   "retry": 1
 }

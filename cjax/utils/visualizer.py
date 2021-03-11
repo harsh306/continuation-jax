@@ -161,13 +161,16 @@ def bif_plot(dpath, func, n=3):
         # plt.plot(x, y)
         ax.scatter(x, y, c=z, cmap=cmaps[i] + "_r", alpha=1.0)
         ax.plot(x, y, alpha=1.0)
+
+        # ax.errorbar(x, y , yerr=q/max(q), uplims=True, lolims=True,
+        #              label='uplims=True, lolims=True')
         circles = plt.Circle((x[-1], y[-1]), q[-1]/max(q), color='r', fill=False, clip_on=False)
         ax.add_patch(circles)
 
     ax.set_ylabel(f"{func.__name__} Network Parameters")
     ax.set_xlabel(f"Continuation Parameter")
     sm = plt.cm.ScalarMappable(
-        cmap=cmaps[1] + "_r", norm=mplt.colors.LogNorm(vmin=min(z), vmax=max(z))
+        cmap=cmaps[1] + "_r", norm=mplt.colors.LogNorm(vmin=min(z), vmax=0.050)
     )
     clb = plt.colorbar(sm)
     clb.ax.set_title('Train Loss')
@@ -215,8 +218,8 @@ def bif_plotv(path, func):
 
 if __name__ == "__main__":
 
-    path = f"/opt/ml/output/toy/"
-    bif_plot(path, pick_array, 9)
+    path = f"/opt/ml/output/data_c/parc/"
+    bif_plot(path, pick_array, 5)
     #d = read_data(path)
     # print(len(d))
 
