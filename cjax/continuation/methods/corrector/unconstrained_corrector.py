@@ -4,15 +4,14 @@ from jax import grad, jit
 from jax.experimental.optimizers import l2_norm
 from cjax.continuation.methods.corrector.base_corrector import Corrector
 from cjax.optimizer.optimizer import OptimizerCreator
-from cjax.utils.datasets import get_mnist_data
+from cjax.utils.datasets import get_mnist_data, meta_mnist
 from examples.torch_data import get_data
+
 
 class UnconstrainedCorrector(Corrector):
     """Minimize the objective using gradient based method."""
 
-    def __init__(
-        self, objective, concat_states, grad_fn, value_fn, hparams
-    ):
+    def __init__(self, objective, concat_states, grad_fn, value_fn, hparams):
         self.concat_states = concat_states
         self._state = None
         self._bparam = None
@@ -20,7 +19,7 @@ class UnconstrainedCorrector(Corrector):
             opt_string=hparams["meta"]["optimizer"], learning_rate=hparams["natural_lr"]
         ).get_optimizer()
         self.objective = objective
-        self.warmup_period = hparams['warmup_period']
+        self.warmup_period = hparams["warmup_period"]
         self.hparams = hparams
         self.grad_fn = grad_fn
         self.value_fn = value_fn
@@ -28,8 +27,16 @@ class UnconstrainedCorrector(Corrector):
         #                                        batch_size=hparams['batch_size'],
         #                                        num_workers=hparams['data_workers'],
         #                             train_only=True, test_only=False)
-        self.data_loader = iter(get_mnist_data(batch_size=hparams['batch_size'],
-                                               resize=hparams['resize_to_small']))
+        if hparams["meta"]["dataset"] == "mnist":
+            self.data_loader = iter(
+                get_mnist_data(
+                    batch_size=hparams["batch_size"], resize=hparams["resize_to_small"]
+                )
+            )
+            self.num_batches = meta_mnist(hparams["batch_size"])["num_batches"]
+        else:
+            self.data_loader = None
+            self.num_batches = 1
 
     def _assign_states(self):
         self._state, self._bparam = self.concat_states
@@ -43,8 +50,9 @@ class UnconstrainedCorrector(Corrector):
         self._assign_states()
         quality = 1.0
         for k in range(self.warmup_period):
-            grads = self.grad_fn(self._state, self._bparam, next(self.data_loader))
-            self._state = self.opt.update_params(self._state, grads[0])
-            quality = l2_norm(grads)
+            for b_j in range(self.num_batches):
+                grads = self.grad_fn(self._state, self._bparam, next(self.data_loader))
+                self._state = self.opt.update_params(self._state, grads[0])
+                quality = l2_norm(grads)
         value = self.value_fn(self._state, self._bparam, next(self.data_loader))
         return self._state, self._bparam, quality, value

@@ -30,7 +30,9 @@ class NaturalContinuation(Continuation):
 
         self.output_file = hparams["meta"]["output_dir"]
         self._delta_s = hparams["delta_bparams"]
-        self.grad_fn = jit(grad(self.objective, argnums=[0])) # TODO: vmap is not fully supported with stax
+        self.grad_fn = jit(
+            grad(self.objective, argnums=[0])
+        )  # TODO: vmap is not fully supported with stax
 
     @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):
@@ -82,7 +84,6 @@ class NaturalContinuation(Continuation):
                 (g < self.hparams["lambda_min"]), self.hparams["lambda_min"], g
             )
             bparam = tree_map(clip_lambda, bparam)
-
 
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam

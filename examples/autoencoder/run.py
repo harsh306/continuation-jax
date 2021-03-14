@@ -20,34 +20,45 @@ from cjax.utils.abstract_problem import ProblemWraper
 import json
 from jax.config import config
 from datetime import datetime
-from cjax.utils.visualizer import bif_plot
-import torch.multiprocessing as multiprocessing
+import mlflow
+from cjax.utils.visualizer import pick_array, bif_plot
+
 config.update("jax_debug_nans", True)
 
 # TODO: use **kwargs to reduce params
 
 if __name__ == "__main__":
-
-    multiprocessing.set_start_method('spawn')
     problem = PCATopologyAE()
     problem = ProblemWraper(problem)
 
     with open(problem.HPARAMS_PATH, "r") as hfile:
         hparams = json.load(hfile)
-    start_time = datetime.now()
+    mlflow.set_tracking_uri(hparams['meta']["mlflow_uri"])
+    mlflow.set_experiment(hparams['meta']["name"])
 
-    if hparams["n_perturbs"] > 1:
-        for perturb in range(hparams["n_perturbs"]):
-            print(f"Running perturb {perturb}")
+    with mlflow.start_run(run_name=hparams['meta']["method"]) as run:
+        mlflow.log_dict(hparams, artifact_file="hparams/hparams.json")
+        mlflow.log_text("", artifact_file="output/_touch.txt")
+        artifact_uri = mlflow.get_artifact_uri("output/")
+        hparams["meta"]["output_dir"] = artifact_uri
+
+        start_time = datetime.now()
+
+        if hparams["n_perturbs"] > 1:
+            for perturb in range(hparams["n_perturbs"]):
+                print(f"Running perturb {perturb}")
+                continuation = ContinuationCreator(
+                    problem=problem, hparams=hparams, key=perturb
+                ).get_continuation_method()
+                continuation.run()
+        else:
             continuation = ContinuationCreator(
-                problem=problem, hparams=hparams, key=perturb
+                problem=problem, hparams=hparams
             ).get_continuation_method()
             continuation.run()
-    else:
-        continuation = ContinuationCreator(
-            problem=problem, hparams=hparams
-        ).get_continuation_method()
-        continuation.run()
 
-    end_time = datetime.now()
-    print(f"Duration: {end_time-start_time}")
+        end_time = datetime.now()
+        print(f"Duration: {end_time-start_time}")
+
+        figure = bif_plot(hparams["meta"]["output_dir"], pick_array)
+        mlflow.log_figure(figure, artifact_file="plots/fig.png")

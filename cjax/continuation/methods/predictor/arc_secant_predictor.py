@@ -5,7 +5,16 @@ from jax import jit
 
 
 class SecantPredictor(Predictor):
-    def __init__(self, concat_states, delta_s, prev_delta_s, omega, net_spacing_param, net_spacing_bparam, hparams):
+    def __init__(
+        self,
+        concat_states,
+        delta_s,
+        prev_delta_s,
+        omega,
+        net_spacing_param,
+        net_spacing_bparam,
+        hparams,
+    ):
         super().__init__(concat_states)
         self._prev_state = None
         self._prev_bparam = None
@@ -84,33 +93,31 @@ class SecantPredictor(Predictor):
                 pass
 
     @staticmethod
-    #@jit
-    def _compute_secant(_state, _bparam, _prev_state,
-                        _prev_bparam, net_spacing_param,
-                        net_spacing_bparam, omega,
-                        delta_s, prev_delta_s):
+    # @jit
+    def _compute_secant(
+        _state,
+        _bparam,
+        _prev_state,
+        _prev_bparam,
+        net_spacing_param,
+        net_spacing_bparam,
+        omega,
+        delta_s,
+        prev_delta_s,
+    ):
         secant_direction = {}
         state_sub = pytree_sub(_state, _prev_state)
         bparam_sub = pytree_sub(_bparam, _prev_bparam)
-        print('norm', (l2_norm(state_sub) + np.square(l2_norm(bparam_sub))))
+        print("norm", (l2_norm(state_sub) + np.square(l2_norm(bparam_sub))))
         secant_direction.update(
-            {
-                "state": pytree_element_mul(
-                    state_sub, delta_s/prev_delta_s
-                )
-            }
+            {"state": pytree_element_mul(state_sub, delta_s / prev_delta_s)}
         )
 
         secant_direction.update(
-            {
-                "bparam": pytree_element_mul(
-                    bparam_sub, delta_s/prev_delta_s
-                )
-            }
+            {"bparam": pytree_element_mul(bparam_sub, delta_s / prev_delta_s)}
         )
 
         return secant_direction
-
 
     def prediction_step(self):
         """Given current state predict next state.
@@ -118,32 +125,41 @@ class SecantPredictor(Predictor):
         """
         self._assign_states()
 
-        self.secant_direction = self._compute_secant(self._state, self._bparam, self._prev_state,
-                                                     self._prev_bparam, self.net_spacing_param,
-                                                     self.net_spacing_bparam, self.omega,
-                                                     self.delta_s, self.prev_delta_s)
-        #self._choose_direction()
+        self.secant_direction = self._compute_secant(
+            self._state,
+            self._bparam,
+            self._prev_state,
+            self._prev_bparam,
+            self.net_spacing_param,
+            self.net_spacing_bparam,
+            self.omega,
+            self.delta_s,
+            self.prev_delta_s,
+        )
+        # self._choose_direction()
         try_state = None
         try_bparam = None
-        for u in range(self.hparams['retry']):
+        for u in range(self.hparams["retry"]):
             try_state = tree_multimap(
-                lambda a, b: a + self.omega * b, self._state, self.secant_direction["state"]
+                lambda a, b: a + self.omega * b,
+                self._state,
+                self.secant_direction["state"],
             )
             try_bparam = tree_multimap(
                 lambda a, b: a + self.omega * b,
                 self._bparam,
                 self.secant_direction["bparam"],
             )
-            relative_error_state = l2_norm(pytree_relative_error(self._state, try_state))
+            relative_error_state = l2_norm(
+                pytree_relative_error(self._state, try_state)
+            )
             relative_error = l2_norm(pytree_relative_error(self._bparam, try_bparam))
-            if self.hparams['adaptive']:
-                if (
-                        (relative_error > self.hparams['re_tresh']) or (relative_error_state > self.hparams['re_tresh'])
+            if self.hparams["adaptive"]:
+                if (relative_error > self.hparams["re_tresh"]) or (
+                    relative_error_state > self.hparams["re_tresh"]
                 ):
-                    self.omega = self.omega * self.hparams['omega_d']
-                    print(
-                        f"retry as relative_error: {relative_error}"
-                    )
+                    self.omega = self.omega * self.hparams["omega_d"]
+                    print(f"retry as relative_error: {relative_error}")
                 else:
                     break
             else:
@@ -151,7 +167,7 @@ class SecantPredictor(Predictor):
 
         self._state = try_state
         self._bparam = try_bparam
-        print('predictor', self._bparam)
+        print("predictor", self._bparam)
         del try_bparam, try_state
 
     def get_secant_vector_concat(self):

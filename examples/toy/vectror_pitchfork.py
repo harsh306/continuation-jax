@@ -16,10 +16,7 @@ class QuadraticProblem(AbstractProblem):
     def objective(params: list, bparam: list, batch_input) -> float:
         result = 0.0
         for w1 in params:
-            result += np.mean(
-                np.divide(np.power(w1, 2), 2.0)
-                * np.square(bparam[0])
-            )
+            result += np.mean(np.divide(np.power(w1, 2), 2.0) * np.square(bparam[0]))
         return result
 
     def initial_values(self) -> Tuple:
@@ -49,7 +46,6 @@ class QuadraticProblem(AbstractProblem):
         return state, bparam
 
 
-
 class SigmoidFold(AbstractProblem):
     def __init__(self):
         self.HPARAMS_PATH = "hparams.json"
@@ -57,7 +53,7 @@ class SigmoidFold(AbstractProblem):
     @staticmethod
     def objective(params, bparam, batch_input) -> float:
         targets = np.multiply(0.5, params[0])
-        logits = np.divide(1, 1+np.exp(-(np.multiply(5.0, params[0]) + bparam[0])))
+        logits = np.divide(1, 1 + np.exp(-(np.multiply(5.0, params[0]) + bparam[0])))
         loss = np.mean(np.square(np.subtract(logits, targets)))
         return loss
 
@@ -74,7 +70,6 @@ class SigmoidFold(AbstractProblem):
         bparams = [[np.array([-2.71])], [np.array([-2.68])]]
 
         return states, bparams
-
 
 
 class PitchForkProblem(AbstractProblem):
@@ -99,7 +94,7 @@ class PitchForkProblem(AbstractProblem):
         :return:
         """
         states = [
-            [np.array([0.01])],
+            [np.array([0.004])],
             [np.array([0.002])],
         ]
         # states = [
@@ -187,10 +182,7 @@ class VectorPitchFork(AbstractProblem):
             [(np.array([0.02]), np.array([0.02]))],
         ]
 
-        bparams = [
-            [np.array([3.2])],
-            [np.array([3.0])]
-        ]
+        bparams = [[np.array([3.2])], [np.array([3.0])]]
 
         return states, bparams
 

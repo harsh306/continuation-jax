@@ -26,44 +26,88 @@ _DATA = "/opt/ml/tmp/jax_example_data/"
 class JaxDataWrapper(torch.utils.data.Dataset):
     def __init__(self, train, args, seed=0):
         super().__init__()
-        if args['dataset']=='mnist':
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))]
+        if args["dataset"] == "mnist":
+            transform = transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
             )
-            self._data = datasets.MNIST(root=args['data'], train=train, download=True, transform=transform)
-        elif args['dataset']=='cifar10':
-            transform = transforms.Compose([
-                transforms.Scale(32),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5,), (0.5, 0.5, 0.5,))]
+            self._data = datasets.MNIST(
+                root=args["data"], train=train, download=True, transform=transform
             )
-            self._data = datasets.CIFAR10(root=args['data'], train=train, download=True, transform=transform)
-        elif args['dataset']=='cifar100':
-            transform = transforms.Compose([
-                transforms.Scale(32),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5,), (0.5, 0.5, 0.5,))]
+        elif args["dataset"] == "cifar10":
+            transform = transforms.Compose(
+                [
+                    transforms.Scale(32),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (
+                            0.5,
+                            0.5,
+                            0.5,
+                        ),
+                        (
+                            0.5,
+                            0.5,
+                            0.5,
+                        ),
+                    ),
+                ]
             )
-            self._data = datasets.CIFAR100(root=args['data'], train=train, download=True, transform=transform)
-        elif args['dataset'] == 'imagenet':
-            transform = transforms.Compose([
-                transforms.Scale(64),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5,), (0.5, 0.5, 0.5,))]
+            self._data = datasets.CIFAR10(
+                root=args["data"], train=train, download=True, transform=transform
+            )
+        elif args["dataset"] == "cifar100":
+            transform = transforms.Compose(
+                [
+                    transforms.Scale(32),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (
+                            0.5,
+                            0.5,
+                            0.5,
+                        ),
+                        (
+                            0.5,
+                            0.5,
+                            0.5,
+                        ),
+                    ),
+                ]
+            )
+            self._data = datasets.CIFAR100(
+                root=args["data"], train=train, download=True, transform=transform
+            )
+        elif args["dataset"] == "imagenet":
+            transform = transforms.Compose(
+                [
+                    transforms.Scale(64),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (
+                            0.5,
+                            0.5,
+                            0.5,
+                        ),
+                        (
+                            0.5,
+                            0.5,
+                            0.5,
+                        ),
+                    ),
+                ]
             )
             if train:
                 self._data = datasets.ImageFolder(
-                    os.path.join(args['data'], 'tiny-imagenet-200', 'train'),
+                    os.path.join(args["data"], "tiny-imagenet-200", "train"),
                     transform=transform,
                 )
             else:
                 self._data = datasets.ImageFolder(
-                    os.path.join(args['data'], 'tiny-imagenet-200', 'val'),
+                    os.path.join(args["data"], "tiny-imagenet-200", "val"),
                     transform=transform,
                 )
         else:
-            self._data = datasets.MNIST(root=args['data'], train=False, download=True)
+            self._data = datasets.MNIST(root=args["data"], train=False, download=True)
 
         self._data_len = len(self._data)
 
@@ -83,12 +127,13 @@ def jax_collate_fn(batch):
     else:
         return jnp.asarray(batch)
 
+
 def get_data(**args):
-    args.update({'data': _DATA})
+    args.update({"data": _DATA})
     train_data = JaxDataWrapper(
-            train=True,
-            args=args,
-        )
+        train=True,
+        args=args,
+    )
     test_data = JaxDataWrapper(
         train=False,
         args=args,
@@ -96,35 +141,37 @@ def get_data(**args):
 
     train_loader = data.DataLoader(
         train_data,
-        batch_size=args['batch_size'],
+        batch_size=args["batch_size"],
         pin_memory=True,
         collate_fn=jax_collate_fn,
-        num_workers=args['num_workers'],
+        num_workers=args["num_workers"],
         shuffle=True,
         drop_last=True,
     )
 
     test_loader = data.DataLoader(
         test_data,
-        batch_size=args['batch_size'],
+        batch_size=args["batch_size"],
         pin_memory=True,
         collate_fn=jax_collate_fn,
-        num_workers=args['num_workers'],
+        num_workers=args["num_workers"],
         shuffle=True,
         drop_last=False,
     )
-    if args['train_only']:
+    if args["train_only"]:
         return train_loader
-    elif args['test_only']:
+    elif args["test_only"]:
         return test_loader
     else:
         return train_loader, test_loader
 
 
-if __name__ == '__main__':
-    train_loader = get_data(dataset='mnist',
-                           batch_size=2,
-                           data=_DATA,
-                           num_workers=2,
-                           train_only=True,
-                           test_only=False)
+if __name__ == "__main__":
+    train_loader = get_data(
+        dataset="mnist",
+        batch_size=2,
+        data=_DATA,
+        num_workers=2,
+        train_only=True,
+        test_only=False,
+    )

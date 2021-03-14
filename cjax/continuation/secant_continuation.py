@@ -72,7 +72,7 @@ class SecantContinuation(Continuation):
                 omega=self._omega,
                 net_spacing_param=self.hparams["net_spacing_param"],
                 net_spacing_bparam=self.hparams["net_spacing_bparam"],
-                hparams=self.hparams
+                hparams=self.hparams,
             )
             predictor.prediction_step()
 

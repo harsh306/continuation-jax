@@ -65,7 +65,7 @@ class ProblemWraper:
         state_stack.update({"bparam": bparams})
         parc_vec = pytree_sub(state_stack, secant_guess)
         result += pytree_dot(parc_vec, secant_vec)
-        return result #- delta_s
+        return result  # - delta_s
 
     def objective_grad(self, params, bparam):  # TODO: JIT?
         grad_J = grad(self.objective, [0, 1])

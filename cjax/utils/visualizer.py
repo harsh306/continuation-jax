@@ -107,11 +107,13 @@ def read_data(path):
                 )
     return data
 
-def read_data_pandas(path):
-    data = pd.read_json(path, orient='records', lines=True)
-    data = data.applymap(lambda a: [flatten_util.ravel_pytree(v)[0] for k, v in a.items()])
-    return data.tolist()
 
+def read_data_pandas(path):
+    data = pd.read_json(path, orient="records", lines=True)
+    data = data.applymap(
+        lambda a: [flatten_util.ravel_pytree(v)[0] for k, v in a.items()]
+    )
+    return data.tolist()
 
 
 # TODO
@@ -129,7 +131,7 @@ def get_loss(thetas):
     return z
 
 
-def bif_plot(dpath, func, n=3):
+def bif_plot(dpath, func):
     cmaps = [
         "Greys",
         "Reds",
@@ -153,6 +155,7 @@ def bif_plot(dpath, func, n=3):
     # cmaps = ['coolwarm', 'PuOr']
     fig, ax = plt.subplots()
     files = os.listdir(dpath)
+    files = sorted(files)[1:]
     for i, file in enumerate(files):
         _path = f"{dpath}/{file}"
         print(_path)
@@ -164,8 +167,10 @@ def bif_plot(dpath, func, n=3):
 
         # ax.errorbar(x, y , yerr=q/max(q), uplims=True, lolims=True,
         #              label='uplims=True, lolims=True')
-        circles = plt.Circle((x[-1], y[-1]), q[-1]/max(q), color='r', fill=False, clip_on=False)
-        ax.add_patch(circles)
+        # circles = plt.Circle(
+        #     (x[-1], y[-1]), q[-1] / max(q), color="r", fill=False, clip_on=False
+        # )
+        # ax.add_patch(circles)
 
     ax.set_ylabel(f"{func.__name__} Network Parameters")
     ax.set_xlabel(f"Continuation Parameter")
@@ -173,10 +178,11 @@ def bif_plot(dpath, func, n=3):
         cmap=cmaps[1] + "_r", norm=mplt.colors.LogNorm(vmin=min(z), vmax=0.050)
     )
     clb = plt.colorbar(sm)
-    clb.ax.set_title('Train Loss')
+    clb.ax.set_title("Train Loss")
+    return fig
 
-    plt.show()
-    plt.clf()
+    # plt.show()
+    # plt.clf()
 
 
 def bif_plotv(path, func):
@@ -211,22 +217,22 @@ def bif_plotv(path, func):
         cmap="coolwarm_r", norm=mplt.colors.LogNorm(vmin=min(z), vmax=max(z))
     )
     clb = plt.colorbar(sm)
-    clb.ax.set_title('Train Loss')
+    clb.ax.set_title("Train Loss")
     plt.show()
     plt.clf()
 
 
 if __name__ == "__main__":
 
-    path = f"/opt/ml/output/data_c/parc/"
+    path = f"/opt/ml/output/data_c/parc_l2/"
     bif_plot(path, pick_array, 5)
-    #d = read_data(path)
+    # d = read_data(path)
     # print(len(d))
 
-    #d1 = read_data_pandas(path)
+    # d1 = read_data_pandas(path)
 
     # bif_plotv(path, norm_data_transform)
-    #bif_plot(path, pick_array, 5)
+    # bif_plot(path, pick_array, 5)
     # bif_plotv(path, norm_data_transform)
     # bif_plot(path, cosine_data_transform, 2)
     # bif_plot(path, norm_data_transform, 2)

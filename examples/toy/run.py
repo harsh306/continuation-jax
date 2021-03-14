@@ -50,5 +50,4 @@ if __name__ == "__main__":
     end_time = datetime.now()
     print(f"Duration: {end_time-start_time}")
 
-    bif_plot(hparams['meta']['output_dir'], pick_array, hparams['n_perturbs']-1)
-
+    bif_plot(hparams["meta"]["output_dir"], pick_array, hparams["n_perturbs"] - 1)

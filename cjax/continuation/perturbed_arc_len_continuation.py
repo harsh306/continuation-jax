@@ -76,11 +76,13 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 omega=self._omega,
                 net_spacing_param=self.hparams["net_spacing_param"],
                 net_spacing_bparam=self.hparams["net_spacing_bparam"],
-                hparams=self.hparams
+                hparams=self.hparams,
             )
             predictor.prediction_step()
             self.prev_secant_direction = predictor.secant_direction
-            self.hparams['sphere_radius'] = 0.005 * self.hparams['omega'] * l2_norm(predictor.secant_direction)
+            self.hparams["sphere_radius"] = (
+                0.005 * self.hparams["omega"] * l2_norm(predictor.secant_direction)
+            )
             concat_states = [
                 predictor.state,
                 predictor.bparam,
@@ -105,7 +107,7 @@ class PerturbedPseudoArcLenContinuation(PseudoArcLenContinuation):
                 hparams=self.hparams,
                 pred_state=[self._state_wrap.state, self._bparam_wrap.state],
                 pred_prev_state=[self._state_wrap.state, self._bparam_wrap.state],
-                counter=self.continuation_steps
+                counter=self.continuation_steps,
             )
             self._prev_state = copy.deepcopy(self._state_wrap.state)
             self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)

@@ -22,13 +22,14 @@ from jax.config import config
 from datetime import datetime
 from cjax.utils.visualizer import bif_plot
 import torch.multiprocessing as multiprocessing
+
 config.update("jax_debug_nans", True)
 
 # TODO: use **kwargs to reduce params
 
 if __name__ == "__main__":
 
-    multiprocessing.set_start_method('spawn')
+    multiprocessing.set_start_method("spawn")
     problem = DataTopologyAE()
     problem = ProblemWraper(problem)
 

@@ -10,6 +10,7 @@ from cjax.utils.profiler import profile
 from cjax.optimizer.optimizer import OptimizerCreator
 from jax.experimental.optimizers import l2_norm
 
+
 class PseudoArcLenContinuation(Continuation):
     # May be refactor to only one continuation TODO
     """Pseudo Arc-length Continuation strategy.
@@ -42,7 +43,9 @@ class PseudoArcLenContinuation(Continuation):
 
         self.hparams = hparams
 
-        self._value_wrap = StateVariable(1.0, counter) #TODO: fix with a static batch (test/train)
+        self._value_wrap = StateVariable(
+            1.0, counter
+        )  # TODO: fix with a static batch (test/train)
         self._quality_wrap = StateVariable(l2_norm(self._state_wrap.state), counter)
 
         # optimizer
@@ -50,7 +53,8 @@ class PseudoArcLenContinuation(Continuation):
             opt_string=hparams["meta"]["optimizer"], learning_rate=hparams["natural_lr"]
         ).get_optimizer()
         self.ascent_opt = OptimizerCreator(
-            opt_string=hparams["meta"]["ascent_optimizer"], learning_rate=hparams["ascent_lr"]
+            opt_string=hparams["meta"]["ascent_optimizer"],
+            learning_rate=hparams["ascent_lr"],
         ).get_optimizer()
 
         # every step hparams
@@ -105,7 +109,7 @@ class PseudoArcLenContinuation(Continuation):
                 omega=self._omega,
                 net_spacing_param=self.hparams["net_spacing_param"],
                 net_spacing_bparam=self.hparams["net_spacing_bparam"],
-                hparams=self.hparams
+                hparams=self.hparams,
             )
             predictor.prediction_step()
             self.prev_secant_direction = predictor.secant_direction

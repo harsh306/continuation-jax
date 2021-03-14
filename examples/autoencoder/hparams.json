@@ -2,15 +2,21 @@
   "meta": {
     "name": "activation-continuation",
     "description": "numerical continuation examples for activation function on AE with PCA initialization",
-    "method": "parc-fix-perturb",
+    "method": "natural",
     "optimizer": "gradient-descent",
     "ascent_optimizer": "gradient-ascent",
     "dataset": "mnist",
-    "output_dir": "/opt/ml/output/pca_ae/parc/sigmoid_batch/"
+    "output_dir": "output/",
+    "mlflow_uri": "http://127.0.0.1:5000"
   },
-  "continuation_steps": 1050,
-  "n_perturbs": 5,
+  "continuation_steps": 3,
+  "n_perturbs": 1,
   "delta_s": 5e-2,
+  "max_arc_len": 0.1,
+  "min_arc_len": 0.05,
+  "n_wall_ants": 3,
+  "guess_ant_steps": 5,
+  "max_cluster_threshold": 0.01,
   "delta_bparams": 0.01,
   "omega": 1.0,
   "omega_d": 0.5,
@@ -39,5 +45,7 @@
   "retry": 1,
   "data_workers": 0,
   "resize_to_small": true,
-  "natural_start": true
+  "natural_start": true,
+  "local_test_measure": "ma_loss",
+  "loss_tol": 5e-7
 }

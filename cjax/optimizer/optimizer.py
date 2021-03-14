@@ -31,8 +31,9 @@ def gradient_ascent(step_size):
 
 class Optimizer:
     """Abstract Optimizer to be inherited by developer for any new optimizer."""
+
     def __init__(self, lr):
-        self._lr =lr
+        self._lr = lr
 
     @property
     def lr(self):
@@ -117,6 +118,7 @@ class OptimizerCreator:
             print(f"Optimizer not implemented: {self._opt_string}")
             raise NotImplementedError
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     opt = GDOptimizer(0.5)
     print(opt.lr)

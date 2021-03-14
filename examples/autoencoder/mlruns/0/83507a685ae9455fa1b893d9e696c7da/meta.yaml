@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/hpathak/expedia/code_samples/continuation/examples/autoencoder/mlruns/0/83507a685ae9455fa1b893d9e696c7da/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+name: ''
+run_id: 83507a685ae9455fa1b893d9e696c7da
+run_uuid: 83507a685ae9455fa1b893d9e696c7da
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1615758830831
+status: 1
+tags: []
+user_id: hpathak
