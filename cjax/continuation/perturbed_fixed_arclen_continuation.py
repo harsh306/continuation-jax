@@ -20,7 +20,7 @@ from cjax.continuation.states.state_variables import StateVariable, StateWriter
 from jax import jit, grad
 import numpy.random as npr
 from cjax.utils.math_trees import pytree_element_add
-
+import mlflow
 # TODO: make **kwargs availible
 
 
@@ -80,7 +80,8 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
         self.bparam_tree_def = None
         self.output_file = hparams["meta"]["output_dir"]
         self.prev_secant_direction = None
-        self.sw = StateWriter(f"{self.output_file}/version_{key_state}.json")
+        self.perturb_index = key_state
+        self.sw = StateWriter(f"{self.output_file}/version_{self.perturb_index}.json")
         self.key_state = key_state + npr.randint(100, 200)
         self.clip_lambda_max = lambda g: np.where(
             (g > self.hparams["lambda_max"]), self.hparams["lambda_max"], g
@@ -116,12 +117,12 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                     value_fn=self.value_func,
                     hparams=self.hparams,
                 )
-                state, bparam, quality, value = corrector.correction_step()
+                state, bparam, quality, value, val_loss = corrector.correction_step()
                 self._state_wrap.state = state
                 self._bparam_wrap.state = bparam
                 del corrector, state, bparam, quality, value, concat_states
 
-            print(
+            print("delta_s",
                 self._value_wrap.get_record(),
                 self._bparam_wrap.get_record(),
                 self._delta_s,
@@ -157,6 +158,8 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
             self.hparams["sphere_radius"] = (
                 self.hparams["sphere_radius_m"] * self._delta_s
             )  # l2_norm(predictor.secant_direction)
+            mlflow.log_metric(f"sphere_radius{self.perturb_index}", self.hparams["sphere_radius"], i)
+            mlflow.log_metric(f"delta_s{self.perturb_index}", self._delta_s, i)
             concat_states = [
                 predictor.state,
                 predictor.bparam,
@@ -186,6 +189,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 bparam,
                 quality,
                 value,
+                val_loss,
                 corrector_omega,
             ) = (
                 corrector.correction_step()
@@ -218,3 +222,10 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                     ]
                 )
                 break
+            mlflow.log_metrics({
+                f"train_loss{self.perturb_index}": float(self._value_wrap.state),
+                f"delta_s{self.perturb_index}": float(self._delta_s),
+                f"norm grads{self.perturb_index}": float(self._quality_wrap.state),
+                f"val_loss{self.perturb_index}": float(val_loss),
+                f"corrector_omega{self.perturb_index}": float(corrector_omega)
+            }, i)

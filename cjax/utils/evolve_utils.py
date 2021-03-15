@@ -8,6 +8,11 @@ def exp_decay(epoch, initial_lrate):
     lrate = initial_lrate * onp.exp(-k * epoch)
     return lrate
 
+def center_data(X):
+    mean_x = onp.mean(X, axis=0, keepdims=True)
+    reduced_mean = onp.subtract(X, mean_x)
+    reduced_mean = reduced_mean.astype(onp.float32)
+    return reduced_mean
 
 def grouper(iterable, threshold=0.01):
     prev = None
@@ -36,10 +41,10 @@ def get_cheapest_ant(ants_norm_grads, ants_loss_values, local_test="loss"):
     m = min(ants_loss_values)
     indicies = [i for i, j in enumerate(ants_loss_values) if j == m]
     print(f"Number of minima by loss: {len(indicies)}")
-    if local_test == "loss":
+    if local_test == "ma_loss":
         index = npr.randint(0, len(indicies))
         cheapest = indicies[index]
-    elif local_test == "norm_grads":
+    elif local_test == "norm_gradients":
         index = npr.randint(0, len(g_indicies))
         cheapest = g_indicies[index]
     else:

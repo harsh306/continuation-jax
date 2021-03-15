@@ -36,7 +36,7 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri(hparams['meta']["mlflow_uri"])
     mlflow.set_experiment(hparams['meta']["name"])
 
-    with mlflow.start_run(run_name=hparams['meta']["method"]) as run:
+    with mlflow.start_run(run_name=hparams['meta']["method"]+"-"+hparams["meta"]["optimizer"]) as run:
         mlflow.log_dict(hparams, artifact_file="hparams/hparams.json")
         mlflow.log_text("", artifact_file="output/_touch.txt")
         artifact_uri = mlflow.get_artifact_uri("output/")

@@ -32,9 +32,17 @@ import struct
 import urllib.request
 import cv2
 import numpy as np
+
 import numpy.random as npr
 
 _DATA = "/opt/ml/tmp/jax_example_data/"
+
+
+def center_data(X):
+    mean_x = np.mean(X, axis=0, keepdims=True)
+    reduced_mean = np.subtract(X, mean_x)
+    reduced_mean = reduced_mean.astype(np.float32)
+    return reduced_mean
 
 
 def synth_batches(input_shape):
@@ -120,7 +128,8 @@ def mnist(permute_train=False, resize=False):
         perm = np.random.RandomState(0).permutation(train_images.shape[0])
         train_images = train_images[perm]
         train_labels = train_labels[perm]
-
+    train_images = center_data(train_images)
+    test_images = center_data(test_images)
     return train_images, train_labels, test_images, test_labels
 
 
@@ -136,12 +145,12 @@ def get_mnist_data(batch_size, resize):
     train_images, train_labels, test_images, test_labels = mnist_raw()
     if resize:
         train_images = img_resize(train_images)
-        test_images = img_resize(test_images)
+        #test_images = img_resize(test_images)
     train_images = _partial_flatten(train_images) / np.float32(255.0)
-    test_images = _partial_flatten(test_images) / np.float32(255.0)
+    #test_images = _partial_flatten(test_images) / np.float32(255.0)
     train_labels = _one_hot(train_labels, 10)
-    test_labels = _one_hot(test_labels, 10)
-
+    #test_labels = _one_hot(test_labels, 10)
+    train_images = center_data(train_images)
     total_data_len = train_images.shape[0]
     num_complete_batches, leftover = divmod(total_data_len, batch_size)
     num_batches = num_complete_batches + bool(leftover)

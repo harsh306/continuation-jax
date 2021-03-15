@@ -17,10 +17,11 @@ class ContinuationCreator:
     TODO: Use **kwargs to reduce the size of the constructors.
     """
 
-    def __init__(self, problem: ProblemWraper, hparams: Dict, key=0):
+    def __init__(self, problem: ProblemWraper, hparams: Dict, key=0, mlflow=None):
         self.problem = problem
         self.hparams = hparams
         self.key = key
+        self.mlflow = mlflow
 
     def get_continuation_method(self) -> Continuation:
         """Creates the continuation object based on user arguments.
@@ -38,6 +39,7 @@ class ContinuationCreator:
                 counter=0,
                 objective=self.problem.objective,
                 hparams=self.hparams,
+                mlflow = self.mlflow,
             )
         elif self.hparams["meta"]["method"] == "secant":
             states, bparams = self.problem.initial_values()

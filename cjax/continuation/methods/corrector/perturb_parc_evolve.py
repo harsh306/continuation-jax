@@ -218,7 +218,7 @@ class PerturbedFixedCorrecter(Corrector):
                                     f"quality {quality}, {self.opt.lr}, {bparam_grads} ,{j_epoch}"
                                 )
                             else:
-                                stop1 = True
+                                stop = True
                                 print(
                                     f"quality {quality} stopping at , {j_epoch}th step"
                                 )
@@ -275,16 +275,16 @@ class PerturbedFixedCorrecter(Corrector):
 
         ants_group = dict(enumerate(grouper(ants_state, tolerence), 1))
         print(f"Number of groups: {len(ants_group)}")
-        cheapest_index = get_cheapest_ant(ants_norm_grads, ants_loss_values)
+        cheapest_index = get_cheapest_ant(ants_norm_grads, ants_loss_values, local_test="norm_grads")
         self._state = ants_state[cheapest_index]
         self._bparam = ants_bparam[cheapest_index]
         value = self.value_fn(
             self._state, self._bparam, batch_data
         )  # Todo: why only final batch data
 
-        # _, _, test_images, test_labels = mnist(permute_train=False, resize=True)
-        # del _
-        # val_loss = self.value_fn(self._state, self._bparam, (test_images,test_labels))
-        # print(f"val loss: {val_loss}")
+        _, _, test_images, test_labels = mnist(permute_train=False, resize=True)
+        del _
+        val_loss = self.value_fn(self._state, self._bparam, (test_images,test_labels))
+        print(f"val loss: {val_loss}")
 
-        return self._state, self._bparam, quality, value, corrector_omega
+        return self._state, self._bparam, quality, value, val_loss, corrector_omega

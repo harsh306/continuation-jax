@@ -10,6 +10,7 @@ import gc
 from cjax.utils.profiler import profile
 from jax import jit, grad
 import jax.numpy as np
+import mlflow
 
 
 class NaturalContinuation(Continuation):
@@ -17,7 +18,7 @@ class NaturalContinuation(Continuation):
 
     Composed of natural predictor and unconstrained corrector"""
 
-    def __init__(self, state, bparam, counter, objective, hparams):
+    def __init__(self, state, bparam, counter, objective, hparams, mlflow: mlflow):
         self._state_wrap = StateVariable(state, counter)
         self._bparam_wrap = StateVariable(bparam, counter)
         self.objective = objective
@@ -33,6 +34,7 @@ class NaturalContinuation(Continuation):
         self.grad_fn = jit(
             grad(self.objective, argnums=[0])
         )  # TODO: vmap is not fully supported with stax
+        self.mlflow = mlflow
 
     @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):
@@ -74,7 +76,7 @@ class NaturalContinuation(Continuation):
                 value_fn=self.value_func,
                 hparams=self.hparams,
             )
-            state, bparam, quality, value = corrector.correction_step()
+            state, bparam, quality, value, val_loss = corrector.correction_step()
 
             clip_lambda = lambda g: np.where(
                 (g > self.hparams["lambda_max"]), self.hparams["lambda_max"], g
@@ -91,12 +93,20 @@ class NaturalContinuation(Continuation):
             self._quality_wrap.state = quality
             del corrector
             gc.collect()
-            # if self._bparam_wrap.state[0] >= self.hparams["lambda_max"]:
-            #     self.sw.write(
-            #         [
-            #             self._state_wrap.get_record(),
-            #             self._bparam_wrap.get_record(),
-            #             self._value_wrap.get_record(),
-            #         ]
-            #     )
-            #     break
+            if self._bparam_wrap.state[0] >= self.hparams["lambda_max"]:
+                self.sw.write(
+                    [
+                        self._state_wrap.get_record(),
+                        self._bparam_wrap.get_record(),
+                        self._value_wrap.get_record(),
+                        self._quality_wrap.get_record(),
+                    ]
+                )
+                break
+            mlflow.log_metrics({
+                "train_loss": float(self._value_wrap.state),
+                "delta_s": float(self._delta_s),
+                "norm grads": float(self._quality_wrap.state),
+                "val_loss": float(val_loss)
+            }, i)
+
