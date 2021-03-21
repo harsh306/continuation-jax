@@ -2,7 +2,7 @@ import jax.numpy as np
 import numpy as onp
 from jax.experimental import stax
 from jax.nn.initializers import zeros
-from jax.nn import sigmoid
+from jax.nn import sigmoid, hard_tanh, soft_sign
 from jax.experimental.stax import Dense, Sigmoid
 from cjax.optimizer.optimizer import GDOptimizer, AdamOptimizer, OptimizerCreator
 import numpy.random as npr
@@ -12,11 +12,13 @@ from cjax.utils.abstract_problem import AbstractProblem
 from jax.tree_util import tree_map
 from cjax.utils.math_trees import *
 from cjax.utils.evolve_utils import *
+from cjax.continuation.states.state_variables import StateWriter
 import math
 import mlflow
 import json
 from cjax.utils.custom_nn import constant_2d, HomotopyDense, v_2d
 from cjax.utils.datasets import mnist, get_mnist_data, meta_mnist
+import pickle
 from examples.torch_data import get_data
 
 data_size = 50000
@@ -29,8 +31,8 @@ npr.seed(7)
 pca_init = True
 
 if pca_init:
-    train_images, labels, _, _ = mnist(permute_train=False, resize=True)
-    inputs = train_images[:data_size]
+    train_images, labels, _, _ = mnist(permute_train=False, resize=True, filter=True)
+    inputs = train_images
     inputs = center_data(inputs)
     u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
     I = np.eye(v_t.shape[-1])
@@ -62,9 +64,9 @@ class PCATopologyAE(AbstractProblem):
     def objective(params, bparam, batch) -> float:
         x, _ = batch
         x = np.reshape(x, (x.shape[0], -1))
-        logits = predict_fun(params, x, bparam=bparam[0], activation_func=sigmoid)
+        logits = predict_fun(params, x, bparam=bparam[0], activation_func=soft_sign)
         loss = np.mean(np.square((np.subtract(logits, x))))
-        # loss += 0.1 * (l2_norm(params) + l2_norm(bparam))
+        #loss += 1e-9 * (l2_norm(params)) #+ l2_norm(bparam))
         return loss
 
     def initial_value(self):
@@ -78,7 +80,7 @@ class PCATopologyAE(AbstractProblem):
         state_0, bparam_0 = self.initial_value()
         state_1 = tree_map(lambda a: a - 0.08, state_0)
         states = [state_0, state_1]
-        bparam_1 = tree_map(lambda a: a + 0.02, bparam_0)
+        bparam_1 = tree_map(lambda a: a + 0.05, bparam_0)
         bparams = [bparam_0, bparam_1]
         return states, bparams
 
@@ -97,8 +99,17 @@ if __name__ == "__main__":
         mlflow.log_dict(hparams, artifact_file="hparams/hparams.json")
         artifact_uri = mlflow.get_artifact_uri()
         print("Artifact uri: {}".format(artifact_uri))
-        data_loader = iter(get_mnist_data(batch_size=hparams["batch_size"], resize=True))
-        num_batches = meta_mnist(batch_size=hparams["batch_size"])["num_batches"]
+
+        mlflow.log_text("", artifact_file="output/_touch.txt")
+        artifact_uri2 = mlflow.get_artifact_uri("output/")
+        print("Artifact uri: {}".format(artifact_uri2))
+        hparams["meta"]["output_dir"] = artifact_uri2
+        file_name = f"{artifact_uri2}/version.jsonl"
+
+        sw = StateWriter(file_name=file_name)
+
+        data_loader = iter(get_mnist_data(batch_size=hparams["batch_size"], resize=True, filter=hparams['filter']))
+        num_batches = meta_mnist(batch_size=hparams["batch_size"],filter=hparams['filter'])["num_batches"]
         print(f"num of bathces: {num_batches}")
         compute_grad_fn = jit(grad(problem.objective, [0]))
 
@@ -120,8 +131,8 @@ if __name__ == "__main__":
                 "norm grads": float(l2_norm(grads))
             }, epoch)
 
-            if len(ma_loss) > 40:
-                loss_check = running_mean(ma_loss, 30)
+            if len(ma_loss) > 100:
+                loss_check = running_mean(ma_loss, 50)
                 if math.isclose(
                         loss_check[-1], loss_check[-2], abs_tol=hparams["loss_tol"]
                 ):
@@ -129,8 +140,24 @@ if __name__ == "__main__":
                     break
 
         train_images, train_labels, test_images, test_labels = mnist(
-            permute_train=False, resize=True
+            permute_train=False, resize=True, filter=hparams["filter"]
         )
+
         val_loss = problem.objective(ae_params, bparam, (test_images, test_labels))
-        print(f"val loss: {val_loss}")
+        print(f"val loss: {val_loss, type(ae_params)}")
+
         mlflow.log_metric("val_loss", float(val_loss))
+
+
+        q = float(l2_norm(grads[0]))
+        if sw:
+            sw.write([
+                {'u':ae_params},
+                {'t': bparam},
+                {'f':loss},
+                {'q':q},
+            ])
+        else:
+            print('sw none')
+    with open(artifact_uri2+'params.pkl', 'wb') as file:
+        pickle.dump(ae_params, file)

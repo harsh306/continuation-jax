@@ -41,7 +41,7 @@ if __name__ == "__main__":
         mlflow.log_text("", artifact_file="output/_touch.txt")
         artifact_uri = mlflow.get_artifact_uri("output/")
         hparams["meta"]["output_dir"] = artifact_uri
-
+        print(f"URI: {artifact_uri}")
         start_time = datetime.now()
 
         if hparams["n_perturbs"] > 1:

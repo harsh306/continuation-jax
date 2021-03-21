@@ -112,10 +112,19 @@ def img_resize(train_images):
     return np.asarray(train_data)
 
 
-def mnist(permute_train=False, resize=False):
+def mnist(permute_train=False, resize=False, filter=False):
     """Download, parse and process MNIST data to unit scale and one-hot labels."""
 
     train_images, train_labels, test_images, test_labels = mnist_raw()
+    if filter:
+        train_filter = np.where(train_labels == 1)
+        train_images = train_images[train_filter]
+        train_labels = train_labels[train_filter]
+
+        test_filter = np.where(test_labels == 1)
+        test_images = test_images[test_filter]
+        test_labels = test_labels[test_filter]
+
     if resize:
         train_images = img_resize(train_images)
         test_images = img_resize(test_images)
@@ -123,6 +132,8 @@ def mnist(permute_train=False, resize=False):
     test_images = _partial_flatten(test_images) / np.float32(255.0)
     train_labels = _one_hot(train_labels, 10)
     test_labels = _one_hot(test_labels, 10)
+
+
 
     if permute_train:
         perm = np.random.RandomState(0).permutation(train_images.shape[0])
@@ -133,21 +144,28 @@ def mnist(permute_train=False, resize=False):
     return train_images, train_labels, test_images, test_labels
 
 
-def meta_mnist(batch_size):
+def meta_mnist(batch_size, filter=False):
     train_len = 60000
     test_len = 10000
+    if filter:
+        train_len= 6000
+        test_len = 1000
     num_complete_batches, leftover = divmod(train_len, batch_size)
     num_batches = num_complete_batches + bool(leftover)
     return locals()
 
 
-def get_mnist_data(batch_size, resize):
+def get_mnist_data(batch_size, resize, filter=False):
     train_images, train_labels, test_images, test_labels = mnist_raw()
     if resize:
         train_images = img_resize(train_images)
         #test_images = img_resize(test_images)
     train_images = _partial_flatten(train_images) / np.float32(255.0)
     #test_images = _partial_flatten(test_images) / np.float32(255.0)
+    if filter:
+        train_filter = np.where(train_labels == 1)
+        train_images = train_images[train_filter]
+        train_labels = train_labels[train_filter]
     train_labels = _one_hot(train_labels, 10)
     #test_labels = _one_hot(test_labels, 10)
     train_images = center_data(train_images)

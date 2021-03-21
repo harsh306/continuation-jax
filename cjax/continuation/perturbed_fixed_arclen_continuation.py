@@ -107,7 +107,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 print(f" unconstrained solver for 1st step")
                 concat_states = [
                     self._prev_state,
-                    pytree_element_add(self._prev_bparam, 0.01),
+                    pytree_element_add(self._prev_bparam, 0.05),
                 ]
 
                 corrector = UnconstrainedCorrector(
@@ -177,6 +177,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 compute_min_grad_fn=self.compute_min_grad_fn,
                 compute_grad_fn=self.compute_grad_fn,
                 hparams=self.hparams,
+                delta_s=self._delta_s,
                 pred_state=[self._state_wrap.state, self._bparam_wrap.state],
                 pred_prev_state=[self._state_wrap.state, self._bparam_wrap.state],
                 counter=self.continuation_steps,

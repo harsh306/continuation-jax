@@ -94,9 +94,7 @@ class PerturbedFixedCorrecter(Corrector):
         pred_prev_state,
         _state,
         _bparam,
-        counter,
         sphere_radius,
-        batch_data,
     ):
         ### Secant normal
         n, sample_unravel = pytree_to_vec(
@@ -158,10 +156,6 @@ class PerturbedFixedCorrecter(Corrector):
         _, key = random.split(random.PRNGKey(self.key_state + npr.randint(1, 100)))
         del _
         quality = 1.0
-        if self.hparams["meta"]["dataset"] == "mnist":  # TODO: make it generic
-            batch_data = next(self.data_loader)
-        else:
-            batch_data = None
         N_opt = 10
         stop = False
         corrector_omega = 1.0
@@ -174,16 +168,17 @@ class PerturbedFixedCorrecter(Corrector):
             self.pred_prev_state,
             self._state,
             self._bparam,
-            self.counter,
             self.sphere_radius,
-            batch_data,
         )
         if self.hparams["_evaluate_perturb"]:
             self._evaluate_perturb()  # does every time
 
         for j in range(self.descent_period):
             for b_j in range(self.num_batches):
-
+                if self.hparams["meta"]["dataset"] == "mnist":  # TODO: make it generic
+                    batch_data = next(self.data_loader)
+                else:
+                    batch_data = None
                 # grads = self.compute_grad_fn(self._state, self._bparam, batch_data)
                 # self._state = self.opt.update_params(self._state, grads[0])
                 state_grads, bparam_grads = self.compute_min_grad_fn(
@@ -218,8 +213,6 @@ class PerturbedFixedCorrecter(Corrector):
                 self._state = self.opt.update_params(self._state, state_grads, j)
                 if stop:
                     break
-                if self.hparams["meta"]["dataset"] == "mnist":  # TODO: make it generic
-                    batch_data = next(self.data_loader)
             if stop:
                 break
 

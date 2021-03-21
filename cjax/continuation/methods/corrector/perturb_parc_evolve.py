@@ -30,6 +30,7 @@ class PerturbedFixedCorrecter(Corrector):
         compute_min_grad_fn,
         compute_grad_fn,
         hparams,
+        delta_s,
         pred_state,
         pred_prev_state,
         counter,
@@ -45,7 +46,7 @@ class PerturbedFixedCorrecter(Corrector):
         self._lagrange_multiplier = hparams["lagrange_init"]
         self._state_secant_vector = None
         self._state_secant_c2 = None
-        self.delta_s = hparams["delta_s"]
+        self.delta_s = delta_s
         self.descent_period = hparams["descent_period"]
         self.max_norm_state = hparams["max_bounds"]
         self.hparams = hparams
@@ -63,10 +64,12 @@ class PerturbedFixedCorrecter(Corrector):
         if hparams["meta"]["dataset"] == "mnist":
             self.data_loader = iter(
                 get_mnist_data(
-                    batch_size=hparams["batch_size"], resize=hparams["resize_to_small"]
+                    batch_size=hparams["batch_size"],
+                    resize=hparams["resize_to_small"],
+                    filter=hparams["filter"]
                 )
             )
-            self.num_batches = meta_mnist(hparams["batch_size"])["num_batches"]
+            self.num_batches = meta_mnist(hparams["batch_size"], hparams["filter"])["num_batches"]
         else:
             self.num_batches = 1
 
@@ -191,6 +194,7 @@ class PerturbedFixedCorrecter(Corrector):
             ants_state[i_n] = self.state_stack["state"]
             ants_bparam[i_n] = self.state_stack["bparam"]
             D_values = []
+            print(f"num_batches", self.num_batches)
             for j_epoch in range(self.descent_period):
                 for b_j in range(self.num_batches):
 
@@ -223,13 +227,13 @@ class PerturbedFixedCorrecter(Corrector):
                                     f"quality {quality} stopping at , {j_epoch}th step"
                                 )
                         else:
-                            if len(D_values) >= 36:
-                                tmp_means = running_mean(D_values, 30)
-                                if math.isclose(
+                            if len(D_values) >= 5:
+                                tmp_means = running_mean(D_values, 3)
+                                if (math.isclose(
                                     tmp_means[-1],
                                     tmp_means[-2],
                                     abs_tol=self.hparams["loss_tol"],
-                                ):
+                                ) and (tmp_means[-1]<=tmp_means[-2])):
                                     print(
                                         f"stopping at , {j_epoch}th step, {ants_bparam[i_n]} bparam"
                                     )
@@ -246,7 +250,7 @@ class PerturbedFixedCorrecter(Corrector):
                         j_epoch + 1
                     ):  # To get around folds slowly
                         corrector_omega = min(
-                            self.hparams["guess_ant_steps"] / (j_epoch + 1), 0.5
+                            self.hparams["guess_ant_steps"] / (j_epoch + 1), 1.5
                         )
                     else:
                         corrector_omega = max(
@@ -273,8 +277,8 @@ class PerturbedFixedCorrecter(Corrector):
                 if stop:
                     break
 
-        ants_group = dict(enumerate(grouper(ants_state, tolerence), 1))
-        print(f"Number of groups: {len(ants_group)}")
+        # ants_group = dict(enumerate(grouper(ants_state, tolerence), 1))
+        # print(f"Number of groups: {len(ants_group)}")
         cheapest_index = get_cheapest_ant(ants_norm_grads, ants_loss_values, local_test="norm_grads")
         self._state = ants_state[cheapest_index]
         self._bparam = ants_bparam[cheapest_index]
@@ -282,7 +286,7 @@ class PerturbedFixedCorrecter(Corrector):
             self._state, self._bparam, batch_data
         )  # Todo: why only final batch data
 
-        _, _, test_images, test_labels = mnist(permute_train=False, resize=True)
+        _, _, test_images, test_labels = mnist(permute_train=False, resize=True, filter=self.hparams["filter"])
         del _
         val_loss = self.value_fn(self._state, self._bparam, (test_images,test_labels))
         print(f"val loss: {val_loss}")

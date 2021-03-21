@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from jax.experimental.optimizers import adam, sgd
+from jax.experimental.optimizers import adam, sgd, nesterov, adagrad, momentum, rmsprop
 from jax.experimental.optimizers import optimizer, make_schedule
 
 
@@ -102,6 +102,59 @@ class AdamOptimizer(Optimizer):
         return params
 
 
+
+class MomentumOptimizer(Optimizer):
+    def __init__(self, learning_rate, mass=0.9):
+        super().__init__(learning_rate)
+        self.mass = mass
+        self.opt_init, self.opt_update, self.get_params = momentum(step_size=self.lr, mass=self.mass)
+
+    def update_params(
+        self, params: list, grad_params: list, step_index: int = 0
+    ) -> list:
+        opt_state = self.opt_init(params)
+        params = self.get_params(self.opt_update(step_index, grad_params, opt_state))
+        return params
+
+
+class NestrovOptimizer(Optimizer):
+    def __init__(self, learning_rate, mass=0.9):
+        super().__init__(learning_rate)
+        self.mass = mass
+        self.opt_init, self.opt_update, self.get_params = nesterov(step_size=self.lr, mass=self.mass)
+
+    def update_params(
+        self, params: list, grad_params: list, step_index: int = 0
+    ) -> list:
+        opt_state = self.opt_init(params)
+        params = self.get_params(self.opt_update(step_index, grad_params, opt_state))
+        return params
+
+class RMSPropOptimizer(Optimizer):
+    def __init__(self, learning_rate):
+        super().__init__(learning_rate)
+        self.opt_init, self.opt_update, self.get_params = rmsprop(step_size=self.lr)
+
+    def update_params(
+        self, params: list, grad_params: list, step_index: int = 0
+    ) -> list:
+        opt_state = self.opt_init(params)
+        params = self.get_params(self.opt_update(step_index, grad_params, opt_state))
+        return params
+
+class AdagradOptimizer(Optimizer):
+    def __init__(self, learning_rate):
+        super().__init__(learning_rate)
+        self.opt_init, self.opt_update, self.get_params = adagrad(step_size=self.lr)
+
+    def update_params(
+        self, params: list, grad_params: list, step_index: int = 0
+    ) -> list:
+        opt_state = self.opt_init(params)
+        params = self.get_params(self.opt_update(step_index, grad_params, opt_state))
+        return params
+
+
 class OptimizerCreator:
     def __init__(self, opt_string, learning_rate):
         self.learning_rate = learning_rate
@@ -112,11 +165,19 @@ class OptimizerCreator:
             return GDOptimizer(self.learning_rate)
         elif self._opt_string == "adam":
             return AdamOptimizer(self.learning_rate)
+        elif self._opt_string == "adagrad":
+            return AdagradOptimizer(self.learning_rate)
+        elif self._opt_string == "rmsprop":
+            return RMSPropOptimizer(self.learning_rate)
+        elif self._opt_string == "nestrov":
+            return NestrovOptimizer(self.learning_rate)
+        elif self._opt_string == "adam":
+            return AdamOptimizer(self.learning_rate)
         elif self._opt_string == "gradient-ascent":
             return GAOptimizer(self.learning_rate)
         else:
-            print(f"Optimizer not implemented: {self._opt_string}")
-            raise NotImplementedError
+            print(f"Optimizer not implemented: {self._opt_string} using default gradient-descent")
+            return GDOptimizer(self.learning_rate)
 
 
 if __name__ == "__main__":

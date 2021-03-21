@@ -2,6 +2,12 @@
 Continuation methods of Deep Neural Networks 
 Tags: optimization, deep-learning, homotopy, bifurcation-analysis, continuation
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) 
+[![PyPI version](https://badge.fury.io/py/continuation-jax.svg)](https://badge.fury.io/py/continuation-jax)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
+
 #### Install using pip:
 ```
 pip install continuation-jax

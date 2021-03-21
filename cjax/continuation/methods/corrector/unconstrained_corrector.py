@@ -32,10 +32,12 @@ class UnconstrainedCorrector(Corrector):
         if hparams["meta"]["dataset"] == "mnist":
             self.data_loader = iter(
                 get_mnist_data(
-                    batch_size=hparams["batch_size"], resize=hparams["resize_to_small"]
+                    batch_size=hparams["batch_size"],
+                    resize=hparams["resize_to_small"],
+                    filter=hparams["filter"]
                 )
             )
-            self.num_batches = meta_mnist(hparams["batch_size"])["num_batches"]
+            self.num_batches = meta_mnist(hparams["batch_size"], hparams["filter"])["num_batches"]
         else:
             self.data_loader = None
             self.num_batches = 1
@@ -90,6 +92,8 @@ class UnconstrainedCorrector(Corrector):
                 break
 
 
-        _, _, test_images, test_labels = mnist(permute_train=False, resize=self.hparams["resize_to_small"])
+        _, _, test_images, test_labels = mnist(permute_train=False,
+                                               resize=self.hparams["resize_to_small"],
+                                               filter=self.hparams['filter'])
         val_loss = self.value_fn(self._state, self._bparam, (test_images, test_labels))
         return self._state, self._bparam, quality, value, val_loss
