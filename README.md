@@ -5,7 +5,7 @@ Tags: optimization, deep-learning, homotopy, bifurcation-analysis, continuation
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) 
 [![PyPI version](https://badge.fury.io/py/continuation-jax.svg)](https://badge.fury.io/py/continuation-jax)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![build](https://travis-ci.com/harsh306/continuation-jax.svg?branch=main)](https://travis-ci.com/harsh306/continuation-jax)
+![build](https://travis-ci.com/harsh306/continuation-jax.svg?branch=main)
 
 
 #### Install using pip:
