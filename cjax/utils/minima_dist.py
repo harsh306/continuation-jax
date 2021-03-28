@@ -10,7 +10,9 @@ sadam_path = "/opt/ml/mlruns/0/499e2c7d99624bbebe5804832cdae845/artifacts/output
 nadam_path = "/opt/ml/mlruns/0/e62430f647274c6e98d6eab930a0150a/artifacts/output/params.pkl"
 ngd_path = "/opt/ml/mlruns/0/236a47c6f2524156963a8cc766a06be4/artifacts/output/param.pkl"
 
-paths = [sgd_path, ngd_path, sadam_path, nadam_path]
+pgd_path = "/opt/ml/mlruns/4/1f8ae964465e4e2d83fd32504bd8f8ad/artifacts/output/params.pkl"
+ogd_path = "/opt/ml/mlruns/4/c58468eae1424e348f2e1cd009ffbf9e/artifacts/output/params.pkl"
+paths = [pgd_path, ogd_path]#, sadam_path, nadam_path]
 trees = []
 for p in paths:
     with open(p, 'rb') as file:
@@ -18,11 +20,11 @@ for p in paths:
         ent, _ = ravel_pytree(tmp)
         trees.append(ent)
 
-sgd = trees[0]
-ngd = trees[1]
-sadam = trees[2]
-nadam = trees[3]
-name_trees = ['']
+# sgd = trees[0]
+# ngd = trees[1]
+# sadam = trees[2]
+# nadam = trees[3]
+# name_trees = ['']
 
 # sgd_ngd = l2_norm(pytree_sub((sgd), (nadam)))
 # print("sgd_ngd", sgd_ngd)
@@ -35,18 +37,19 @@ for k1, k2 in pairs:
     pairs_dist.append(l2_norm(pytree_sub(k1, k2)))
 print(pairs_dist)
 
-corr_matrix = np.asarray(pairs_dist).reshape(4,4)
-labels = ['sgd', 'ngd','sadam', 'nadam' ]
+labels = ['pgd','ogd'] #['sgd', 'ngd','sadam', 'nadam' ]
+M = len(labels)
+corr_matrix = np.asarray(pairs_dist).reshape(M,M)
 
 fig, ax = plt.subplots()
 im = ax.imshow(corr_matrix)
 im.set_clim(0, 15)
 ax.grid(False)
-ax.xaxis.set(ticks=(0, 1, 2, 3), ticklabels=labels)
-ax.yaxis.set(ticks=(0, 1, 2, 3), ticklabels=labels)
+ax.xaxis.set(ticks=range(M), ticklabels=labels)
+ax.yaxis.set(ticks=range(M), ticklabels=labels)
 #ax.set_ylim(2.5, -0.5)
-for i in range(4):
-    for j in range(4):
+for i in range(M):
+    for j in range(M):
         ax.text(j, i, corr_matrix[i, j], ha='center', va='center',
                 color='r')
 cbar = ax.figure.colorbar(im, ax=ax, format='% .2f')

@@ -76,8 +76,8 @@ class UnconstrainedCorrector(Corrector):
                             f"quality {quality} stopping at , {k}th step"
                         )
                 else:
-                    if len(ma_loss) >= 36:
-                        tmp_means = running_mean(ma_loss, 30)
+                    if len(ma_loss) >= 20:
+                        tmp_means = running_mean(ma_loss, 10)
                         if math.isclose(
                                 tmp_means[-1],
                                 tmp_means[-2],

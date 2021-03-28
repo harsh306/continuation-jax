@@ -1,9 +1,9 @@
 import jax.numpy as np
 import numpy as onp
 from jax.experimental import stax
-from jax.nn.initializers import zeros
+from jax.nn.initializers import zeros, orthogonal, delta_orthogonal, uniform
 from jax.nn import sigmoid, hard_tanh, soft_sign
-from jax.experimental.stax import Dense, Sigmoid
+from jax.experimental.stax import Dense, Sigmoid, Softplus, Tanh
 from cjax.optimizer.optimizer import GDOptimizer, AdamOptimizer, OptimizerCreator
 import numpy.random as npr
 from jax import random
@@ -28,7 +28,8 @@ num_steps = 10
 code_dim = 1
 npr.seed(7)
 
-pca_init = True
+pca_init = False
+orth_init = True
 
 if pca_init:
     train_images, labels, _, _ = mnist(permute_train=False, resize=True, filter=True)
@@ -41,17 +42,24 @@ if pca_init:
     #print(np.mean(inputs-np.dot(u, np.multiply(s, v_t))))
 
     init_fun, predict_fun = stax.serial(
-        HomotopyDense(out_dim=4, W_init=v_2d(v_t), b_init=zeros),
-        HomotopyDense(out_dim=2, W_init=constant_2d(noisy_I), b_init=zeros),
-        HomotopyDense(out_dim=4, W_init=constant_2d(noisy_I), b_init=zeros),
+        HomotopyDense(out_dim=18, W_init=v_2d(v_t), b_init=zeros),
+        #HomotopyDense(out_dim=36, W_init=constant_2d(noisy_I), b_init=zeros),
+        #HomotopyDense(out_dim=36, W_init=constant_2d(noisy_I), b_init=zeros),
         Dense(out_dim=input_shape[-1], W_init=v_2d(v_t.T), b_init=zeros),
     )
     del inputs, train_images, _
+elif orth_init:
+    init_fun, predict_fun = stax.serial(
+        HomotopyDense(out_dim=18, W_init=orthogonal(), b_init=zeros),
+        # Dense(out_dim=36), Sigmoid,
+        # Dense(out_dim=36), Sigmoid,
+        Dense(out_dim=input_shape[-1], W_init=orthogonal(), b_init=zeros),
+    )
 else:
     init_fun, predict_fun = stax.serial(
-        Dense(out_dim=4), Sigmoid,
-        Dense(out_dim=2), Sigmoid,
-        Dense(out_dim=4), Sigmoid,
+        Dense(out_dim=18), Tanh,
+        #Dense(out_dim=36), Sigmoid,
+        #Dense(out_dim=36), Sigmoid,
         Dense(out_dim=input_shape[-1]),
     )
 
@@ -66,14 +74,14 @@ class PCATopologyAE(AbstractProblem):
         x = np.reshape(x, (x.shape[0], -1))
         logits = predict_fun(params, x, bparam=bparam[0], activation_func=soft_sign)
         loss = np.mean(np.square((np.subtract(logits, x))))
-        #loss += 1e-9 * (l2_norm(params)) #+ l2_norm(bparam))
+        loss += 5e-3 * (l2_norm(params)) #+ l2_norm(bparam))
         return loss
 
     def initial_value(self):
         ae_shape, ae_params = init_fun(random.PRNGKey(0), input_shape)
         # print(ae_shape)
         assert ae_shape == input_shape
-        bparam = [np.array([0.01], dtype=np.float64)]
+        bparam = [np.array([0.00], dtype=np.float64)]
         return ae_params, bparam
 
     def initial_values(self):
@@ -95,7 +103,7 @@ if __name__ == "__main__":
     mlflow.set_experiment(hparams['meta']["name"])
     with mlflow.start_run(run_name=hparams['meta']["method"]+"-"+hparams["meta"]["optimizer"]) as run:
         ae_params, bparam = problem.initial_value()
-        bparam = pytree_element_add(bparam, 0.99)
+        bparam = pytree_element_add(bparam, 0.0)
         mlflow.log_dict(hparams, artifact_file="hparams/hparams.json")
         artifact_uri = mlflow.get_artifact_uri()
         print("Artifact uri: {}".format(artifact_uri))
@@ -113,7 +121,7 @@ if __name__ == "__main__":
         print(f"num of bathces: {num_batches}")
         compute_grad_fn = jit(grad(problem.objective, [0]))
 
-        opt = OptimizerCreator(hparams["meta"]["optimizer"], learning_rate=hparams["descent_lr"]).get_optimizer()
+        opt = OptimizerCreator(hparams["meta"]["optimizer"], learning_rate=hparams["natural_lr"]).get_optimizer()
         ma_loss = []
         for epoch in range(500):
             for b_j in range(num_batches):

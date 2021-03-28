@@ -121,8 +121,8 @@ class PerturbedFixedCorrecter(Corrector):
         proj_of_u_on_n = projection_affine(len(n), u, n, u_0)
 
         point_on_plane = u + pytree_sub(tmp, proj_of_u_on_n)  ## state= pred_state + n
-        noise = random.uniform(key, [1], minval=-0.03, maxval=0.03)
-        inv_vec = np.array([-1.0 + noise, 1.0 + noise])
+        #noise = random.uniform(key, [1], minval=-0.003, maxval=0.03)
+        inv_vec = np.array([-1.0, 1.0])
         parc = pytree_element_mul(
             pytree_normalized(pytree_sub(point_on_plane, tmp)),
             inv_vec[(counter % 2)],
@@ -198,6 +198,7 @@ class PerturbedFixedCorrecter(Corrector):
             for j_epoch in range(self.descent_period):
                 for b_j in range(self.num_batches):
 
+                    #alternate
                     # grads = self.compute_grad_fn(self._state, self._bparam, batch_data)
                     # self._state = self.opt.update_params(self._state, grads[0])
                     state_grads, bparam_grads = self.compute_min_grad_fn(
@@ -214,7 +215,7 @@ class PerturbedFixedCorrecter(Corrector):
                         self.opt.lr = self.exp_decay(
                             j_epoch, self.hparams["natural_lr"]
                         )
-                        quality = l2_norm(state_grads)  # +l2_norm(bparam_grads)
+                        quality = l2_norm(state_grads) #l2_norm(bparam_grads)
                         if self.hparams["local_test_measure"] == "norm_gradients":
                             if quality > self.hparams["quality_thresh"]:
                                 pass
@@ -227,13 +228,13 @@ class PerturbedFixedCorrecter(Corrector):
                                     f"quality {quality} stopping at , {j_epoch}th step"
                                 )
                         else:
-                            if len(D_values) >= 5:
-                                tmp_means = running_mean(D_values, 3)
+                            if len(D_values) >= 20:
+                                tmp_means = running_mean(D_values, 10)
                                 if (math.isclose(
-                                    tmp_means[-1],
-                                    tmp_means[-2],
-                                    abs_tol=self.hparams["loss_tol"],
-                                ) and (tmp_means[-1]<=tmp_means[-2])):
+                                tmp_means[-1],
+                                tmp_means[-2],
+                                abs_tol=self.hparams["loss_tol"]
+                                )):
                                     print(
                                         f"stopping at , {j_epoch}th step, {ants_bparam[i_n]} bparam"
                                     )
@@ -246,7 +247,7 @@ class PerturbedFixedCorrecter(Corrector):
                             bparam_grads, self.hparams["max_clip_grad"]
                         )
 
-                    if self.hparams["guess_ant_steps"] > (
+                    if self.hparams["guess_ant_steps"] >= (
                         j_epoch + 1
                     ):  # To get around folds slowly
                         corrector_omega = min(

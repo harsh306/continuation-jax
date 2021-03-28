@@ -1,7 +1,7 @@
 from cjax.continuation.base_continuation import Continuation
 from cjax.continuation.states.state_variables import StateVariable, StateWriter
 from cjax.optimizer.optimizer import OptimizerCreator
-from cjax.continuation.methods.predictor.secant_predictor import SecantPredictor
+from cjax.continuation.methods.predictor.arc_secant_predictor import SecantPredictor
 from cjax.continuation.methods.corrector.unconstrained_corrector import (
     UnconstrainedCorrector,
 )
@@ -9,7 +9,9 @@ from jax.tree_util import *
 import gc
 from cjax.utils.profiler import profile
 from jax import jit, grad
+from cjax.utils.math_trees import *
 import jax.numpy as np
+import mlflow
 
 
 class SecantContinuation(Continuation):
@@ -24,7 +26,8 @@ class SecantContinuation(Continuation):
         self._prev_bparam = bparam_0
         self.objective = objective
         self.value_func = jit(self.objective)
-        self._value_wrap = StateVariable(self.objective(state, bparam), counter)
+        self._value_wrap = StateVariable(0.005, counter)
+        self._quality_wrap = StateVariable(0.005, counter)
         self.sw = None
         self.hparams = hparams
         self.opt = OptimizerCreator(
@@ -34,6 +37,7 @@ class SecantContinuation(Continuation):
 
         self.output_file = hparams["meta"]["output_dir"]
         self._delta_s = hparams["delta_s"]
+        self._prev_delta_s = hparams["delta_s"]
         self._omega = hparams["omega"]
         self.grad_fn = jit(grad(self.objective, argnums=[0]))
         self.prev_secant_direction = None
@@ -48,15 +52,36 @@ class SecantContinuation(Continuation):
         self.sw = StateWriter(f"{self.output_file}/version.json")
 
         for i in range(self.continuation_steps):
+            if i == 0 and self.hparams["natural_start"]:
+                print(f" unconstrained solver for 1st step")
+                concat_states = [
+                    self._prev_state,
+                    pytree_element_add(self._prev_bparam, 0.05),
+                ]
+
+                corrector = UnconstrainedCorrector(
+                    objective=self.objective,
+                    concat_states=concat_states,
+                    grad_fn=self.grad_fn,
+                    value_fn=self.value_func,
+                    hparams=self.hparams,
+                )
+                state, bparam, quality, value, val_loss = corrector.correction_step()
+                self._state_wrap.state = state
+                self._bparam_wrap.state = bparam
+                del corrector, state, bparam, quality, value, concat_states
+
             print(self._value_wrap.get_record(), self._bparam_wrap.get_record())
             self._state_wrap.counter = i
             self._bparam_wrap.counter = i
             self._value_wrap.counter = i
+            self._quality_wrap.counter = i
             self.sw.write(
                 [
                     self._state_wrap.get_record(),
                     self._bparam_wrap.get_record(),
                     self._value_wrap.get_record(),
+                    self._quality_wrap.get_record(),
                 ]
             )
 
@@ -69,6 +94,7 @@ class SecantContinuation(Continuation):
             predictor = SecantPredictor(
                 concat_states=concat_states,
                 delta_s=self._delta_s,
+                prev_delta_s=self._prev_delta_s,
                 omega=self._omega,
                 net_spacing_param=self.hparams["net_spacing_param"],
                 net_spacing_bparam=self.hparams["net_spacing_bparam"],
@@ -82,28 +108,26 @@ class SecantContinuation(Continuation):
             del predictor
             gc.collect()
             corrector = UnconstrainedCorrector(
-                optimizer=self.opt,
                 objective=self.objective,
                 concat_states=concat_states,
                 grad_fn=self.grad_fn,
-                warmup_period=self.hparams["warmup_period"],
+                value_fn=self.value_func,
+                hparams=self.hparams,
             )
-            state, bparam = corrector.correction_step()
+            state, bparam, quality, value, val_loss = corrector.correction_step()
 
-            clip_lambda = lambda g: np.where(
-                (g > self.hparams["lambda_max"]), self.hparams["lambda_max"], g
-            )
-            bparam = tree_map(clip_lambda, bparam)
-            clip_lambda = lambda g: np.where(
-                (g < self.hparams["lambda_min"]), self.hparams["lambda_min"], g
-            )
-            bparam = tree_map(clip_lambda, bparam)
+            corrector_omega = 0.005
+            self._prev_delta_s = self._delta_s
+            self._delta_s = corrector_omega * self._delta_s
+            self._delta_s = min(self._delta_s, self.hparams["max_arc_len"])
+            self._delta_s = max(self._delta_s, self.hparams["min_arc_len"])
 
-            value = self.value_func(state, bparam)
             self._state_wrap.state = state
             self._bparam_wrap.state = bparam
             self._value_wrap.state = value
+            self._quality_wrap.state = quality
             del corrector
+            del concat_states
             gc.collect()
             if self._bparam_wrap.state[0] >= self.hparams["lambda_max"]:
                 self.sw.write(
@@ -111,6 +135,14 @@ class SecantContinuation(Continuation):
                         self._state_wrap.get_record(),
                         self._bparam_wrap.get_record(),
                         self._value_wrap.get_record(),
+                        self._quality_wrap.get_record(),
                     ]
                 )
                 break
+            mlflow.log_metrics({
+                "train_loss": float(self._value_wrap.state),
+                "delta_s": float(self._delta_s),
+                "norm grads": float(self._quality_wrap.state),
+                "val_loss": float(val_loss)
+            }, i)
+

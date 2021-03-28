@@ -39,7 +39,6 @@ class ContinuationCreator:
                 counter=0,
                 objective=self.problem.objective,
                 hparams=self.hparams,
-                mlflow = self.mlflow,
             )
         elif self.hparams["meta"]["method"] == "secant":
             states, bparams = self.problem.initial_values()

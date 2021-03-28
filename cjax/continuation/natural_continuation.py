@@ -18,7 +18,7 @@ class NaturalContinuation(Continuation):
 
     Composed of natural predictor and unconstrained corrector"""
 
-    def __init__(self, state, bparam, counter, objective, hparams, mlflow: mlflow):
+    def __init__(self, state, bparam, counter, objective, hparams):
         self._state_wrap = StateVariable(state, counter)
         self._bparam_wrap = StateVariable(bparam, counter)
         self.objective = objective
@@ -34,7 +34,6 @@ class NaturalContinuation(Continuation):
         self.grad_fn = jit(
             grad(self.objective, argnums=[0])
         )  # TODO: vmap is not fully supported with stax
-        self.mlflow = mlflow
 
     @profile(sort_by="cumulative", lines_to_print=10, strip_dirs=True)
     def run(self):

@@ -120,7 +120,6 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 state, bparam, quality, value, val_loss = corrector.correction_step()
                 self._state_wrap.state = state
                 self._bparam_wrap.state = bparam
-                del corrector, state, bparam, quality, value, concat_states
 
             print("delta_s",
                 self._value_wrap.get_record(),
@@ -166,8 +165,8 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 predictor.secant_direction,
                 {"state": predictor.state, "bparam": predictor.bparam},
             ]
-            del predictor
-            gc.collect()
+
+
             corrector = PerturbedFixedCorrecter(
                 objective=self.objective,
                 dual_objective=self.dual_objective,
@@ -208,9 +207,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
             self._delta_s = corrector_omega * self._delta_s
             self._delta_s = min(self._delta_s, self.hparams["max_arc_len"])
             self._delta_s = max(self._delta_s, self.hparams["min_arc_len"])
-            del corrector
-            del concat_states
-            gc.collect()
+
             if (bparam[0] >= self.hparams["lambda_max"]) or (
                 bparam[0] <= self.hparams["lambda_min"]
             ):

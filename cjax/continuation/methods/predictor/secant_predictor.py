@@ -104,7 +104,6 @@ class SecantPredictor(Predictor):
         secant_direction = {}
         state_sub = pytree_sub(_state, _prev_state)
         bparam_sub = pytree_sub(_bparam, _prev_bparam)
-        print("norm", (l2_norm(state_sub) + np.square(l2_norm(bparam_sub))))
         secant_direction.update(
             {
                 "state": pytree_element_mul(

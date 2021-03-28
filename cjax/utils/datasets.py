@@ -182,8 +182,8 @@ def get_mnist_data(batch_size, resize, filter=False):
 
 
 if __name__ == "__main__":
-    train_images, _, test_images, _ = mnist()
+    train_images, _, test_images, _ = mnist(resize=False, filter=True)
     print(train_images.shape[0])
     print(test_images.shape[0])
     # z = meta_mnist(5000)
-    print(meta_mnist(5000)["num_batches"])
+    print(meta_mnist(6742, True)["num_batches"])
