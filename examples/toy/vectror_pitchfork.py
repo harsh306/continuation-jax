@@ -2,7 +2,8 @@ import jax.numpy as np
 from jax.config import config
 from cjax.utils.abstract_problem import AbstractProblem
 from jax.tree_util import *
-
+from jax import hessian, grad, jit
+from jax.flatten_util import ravel_pytree
 config.update("jax_debug_nans", True)
 
 
@@ -94,14 +95,14 @@ class PitchForkProblem(AbstractProblem):
         :return:
         """
         states = [
-            [np.array([0.004])],
-            [np.array([0.002])],
+            [np.array([-1.734])],
+            [np.array([-1.73])],
         ]
         # states = [
         #     [np.array([-1.734])],
         #     [np.array([-1.632])],
         # ]
-        bparams = [[np.array([3.1])], [np.array([2.8])]]
+        bparams = [[np.array([-3.1])], [np.array([-3.0])]]
 
         return states, bparams
 
@@ -110,8 +111,8 @@ class PitchForkProblem(AbstractProblem):
         PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
         :return:
         """
-        state = [np.array([0.04])]
-        bparam = [np.array([3.0])]
+        state = [np.array([-1.734])]
+        bparam = [np.array([-3.0])]
         return state, bparam
 
 
@@ -157,7 +158,7 @@ class VectorPitchFork(AbstractProblem):
         PyTreeDef(list, [PyTreeDef(tuple, [*,*])])
         :return:
         """
-        state = [(np.array([-1.734]), np.array([-1.732]))]
+        state = [(np.array([-0.234]), np.array([-1.73205080757]))]
         bparam = [np.array([-3.0])]
         return state, bparam
 
@@ -188,4 +189,13 @@ class VectorPitchFork(AbstractProblem):
 
 
 if __name__ == "__main__":
-    s = PitchForkProblem()
+    s = VectorPitchFork()
+    param, bparam = s.initial_value()
+    print(param, bparam)
+    g = jit(grad(s.objective, argnums=[0]))(param, bparam, 0.0)
+    print(g)
+    dg2 = hessian(s.objective, argnums=[0])(param, bparam, 0.0)
+    print(dg2)
+    mtree, _ = ravel_pytree(dg2)
+    eigen = np.linalg.eigvals(mtree.reshape(len(param),len(param)))
+    print(eigen)

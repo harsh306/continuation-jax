@@ -4,7 +4,7 @@ from cjax.continuation.arc_len_continuation import (
 )
 from cjax.continuation.states.state_variables import StateWriter
 from cjax.continuation.methods.predictor.arc_secant_predictor import SecantPredictor
-from cjax.continuation.methods.corrector.perturb_parc_evolve import (
+from cjax.continuation.methods.corrector.perturb_parc_evolve_data import (
     PerturbedFixedCorrecter,
 )
 from cjax.continuation.methods.corrector.unconstrained_corrector import (
@@ -38,6 +38,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
         counter,
         objective,
         dual_objective,
+        accuracy_fn,
         hparams,
         key_state,
     ):
@@ -53,6 +54,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
         # objectives
         self.objective = objective
         self.dual_objective = dual_objective
+        self.accuracy_fn1= jit(accuracy_fn)
         self.value_func = jit(self.objective)
 
         self.hparams = hparams
@@ -107,7 +109,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 print(f" unconstrained solver for 1st step")
                 concat_states = [
                     self._prev_state,
-                    pytree_element_add(self._prev_bparam, 0.05),
+                    pytree_element_add(self._prev_bparam, 0.03),
                 ]
 
                 corrector = UnconstrainedCorrector(
@@ -118,6 +120,24 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                     hparams=self.hparams,
                 )
                 state, bparam, quality, value, val_loss = corrector.correction_step()
+                if self.hparams["double_natural_start"]:  # TODO: refactor natural and double natural start
+                    self._prev_state = state
+                    self._prev_bparam = bparam
+                    print(f" unconstrained solver for 2nd step")
+                    concat_states = [
+                        self._prev_state,
+                        pytree_element_add(self._prev_bparam, 0.04),
+                    ]
+
+                    corrector = UnconstrainedCorrector(
+                        objective=self.objective,
+                        concat_states=concat_states,
+                        grad_fn=self.compute_grad_fn,
+                        value_fn=self.value_func,
+                        hparams=self.hparams,
+                    )
+                    state, bparam, quality, value, val_loss = corrector.correction_step()
+
                 self._state_wrap.state = state
                 self._bparam_wrap.state = bparam
 
@@ -170,6 +190,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
             corrector = PerturbedFixedCorrecter(
                 objective=self.objective,
                 dual_objective=self.dual_objective,
+                accuracy_fn1=self.accuracy_fn1,
                 value_fn=self.value_func,
                 concat_states=concat_states,
                 key_state=self.key_state,
@@ -190,6 +211,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 quality,
                 value,
                 val_loss,
+                val_acc,
                 corrector_omega,
             ) = (
                 corrector.correction_step()
@@ -225,5 +247,6 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 f"delta_s{self.perturb_index}": float(self._delta_s),
                 f"norm grads{self.perturb_index}": float(self._quality_wrap.state),
                 f"val_loss{self.perturb_index}": float(val_loss),
+                f"val_acc{self.perturb_index}": float(val_acc),
                 f"corrector_omega{self.perturb_index}": float(corrector_omega)
             }, i)

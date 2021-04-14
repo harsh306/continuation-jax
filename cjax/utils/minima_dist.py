@@ -10,8 +10,8 @@ sadam_path = "/opt/ml/mlruns/0/499e2c7d99624bbebe5804832cdae845/artifacts/output
 nadam_path = "/opt/ml/mlruns/0/e62430f647274c6e98d6eab930a0150a/artifacts/output/params.pkl"
 ngd_path = "/opt/ml/mlruns/0/236a47c6f2524156963a8cc766a06be4/artifacts/output/param.pkl"
 
-pgd_path = "/opt/ml/mlruns/4/1f8ae964465e4e2d83fd32504bd8f8ad/artifacts/output/params.pkl"
-ogd_path = "/opt/ml/mlruns/4/c58468eae1424e348f2e1cd009ffbf9e/artifacts/output/params.pkl"
+pgd_path = "/opt/ml/mlruns/5/5a518d1762cb4b1eafc73e5cfdb11760/artifacts/output/parc.pkl"
+ogd_path = "/opt/ml/mlruns/5/ef3650bc42a945ac8a3b5200bd181283/artifacts/output/params.pkl"
 paths = [pgd_path, ogd_path]#, sadam_path, nadam_path]
 trees = []
 for p in paths:

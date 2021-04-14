@@ -3,7 +3,7 @@ import numpy as onp
 from jax.experimental import stax
 from jax.nn.initializers import zeros, orthogonal, delta_orthogonal, uniform
 from jax.nn import sigmoid, hard_tanh, soft_sign, relu
-from jax.experimental.stax import Dense, Sigmoid, Softplus, Tanh
+from jax.experimental.stax import Dense, Sigmoid, Softplus, Tanh, LogSoftmax,Relu
 from cjax.optimizer.optimizer import GDOptimizer, AdamOptimizer, OptimizerCreator
 import numpy.random as npr
 from jax import random
@@ -21,66 +21,50 @@ from cjax.utils.datasets import mnist, get_mnist_data, meta_mnist
 import pickle
 from examples.torch_data import get_data
 
-data_size = 50000
-input_shape = (data_size, 36)
-step_size = 0.1
-num_steps = 10
-code_dim = 1
 npr.seed(7)
+orth_init_cont = True
+input_shape = (30000, 36)
+def accuracy(params, bparams, batch):
+    inputs, targets = batch
+    target_class = np.argmax(targets, axis=-1)
+    predicted_class = np.argmax(predict_fun(params, inputs), axis=-1)
+    return np.mean(predicted_class == target_class)
 
-pca_init = True
-orth_init = False
-
-if pca_init:
-    train_images, labels, _, _ = mnist(permute_train=False, resize=True, filter=True)
-    inputs = train_images
-    inputs = center_data(inputs)
-    u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
-    I = np.eye(v_t.shape[-1])
-    I_add = npr.normal(0.0, 0.002, size=I.shape)
-    noisy_I = I + I_add
-    #print(np.mean(inputs-np.dot(u, np.multiply(s, v_t))))
-
+if orth_init_cont:
     init_fun, predict_fun = stax.serial(
-        HomotopyDense(out_dim=4, W_init=v_2d(v_t), b_init=zeros),
-        #HomotopyDense(out_dim=36, W_init=constant_2d(noisy_I), b_init=zeros),
-        #HomotopyDense(out_dim=36, W_init=constant_2d(noisy_I), b_init=zeros),
-        Dense(out_dim=input_shape[-1], W_init=v_2d(v_t.T), b_init=zeros),
-    )
-    del inputs, train_images, _
-elif orth_init:
-    init_fun, predict_fun = stax.serial(
-        HomotopyDense(out_dim=4, W_init=orthogonal(), b_init=zeros),
-        # Dense(out_dim=36), Sigmoid,
-        # Dense(out_dim=36), Sigmoid,
-        Dense(out_dim=input_shape[-1], W_init=orthogonal(), b_init=zeros),
+        HomotopyDense(out_dim=18, W_init=orthogonal(), b_init=zeros),
+        Dense(out_dim=10, W_init=orthogonal(), b_init=zeros), LogSoftmax
     )
 else:
+    # baseline network
     init_fun, predict_fun = stax.serial(
-        Dense(out_dim=18), Tanh,
-        #Dense(out_dim=36), Sigmoid,
-        #Dense(out_dim=36), Sigmoid,
-        Dense(out_dim=input_shape[-1]),
+        Dense(out_dim=18), Relu,
+        Dense(out_dim=10), LogSoftmax
     )
 
-
-class PCATopologyAE(AbstractProblem):
+class ModelContClassifier(AbstractProblem):
     def __init__(self):
         self.HPARAMS_PATH = "hparams.json"
 
     @staticmethod
     def objective(params, bparam, batch) -> float:
-        x, _ = batch
+        x, targets = batch
         x = np.reshape(x, (x.shape[0], -1))
-        logits = predict_fun(params, x, bparam=bparam[0], activation_func=sigmoid)
-        loss = np.mean(np.square((np.subtract(logits, x))))
-        loss += 5e-5 * (l2_norm(params)) #+ l2_norm(bparam))
+        logits = predict_fun(params, x, bparam=bparam[0], activation_func=relu)
+        loss = -np.mean(np.sum(logits * targets, axis=1))
+        loss += 5e-7 * (l2_norm(params)) #+ l2_norm(bparam))
         return loss
+
+    @staticmethod
+    def accuracy(params, bparam, batch):
+        x, targets = batch
+        x = np.reshape(x, (x.shape[0], -1))
+        target_class = np.argmax(targets, axis=-1)
+        predicted_class = np.argmax(predict_fun(params, x, bparam=bparam[0], activation_func=relu), axis=-1)
+        return np.mean(predicted_class == target_class)
 
     def initial_value(self):
         ae_shape, ae_params = init_fun(random.PRNGKey(0), input_shape)
-        # print(ae_shape)
-        assert ae_shape == input_shape
         bparam = [np.array([0.00], dtype=np.float64)]
         return ae_params, bparam
 
@@ -93,17 +77,16 @@ class PCATopologyAE(AbstractProblem):
         return states, bparams
 
 
-
 if __name__ == "__main__":
 
-    problem = PCATopologyAE()
+    problem = ModelContClassifier()
     with open(problem.HPARAMS_PATH, "r") as hfile:
         hparams = json.load(hfile)
     mlflow.set_tracking_uri(hparams['meta']["mlflow_uri"])
     mlflow.set_experiment(hparams['meta']["name"])
     with mlflow.start_run(run_name=hparams['meta']["method"]+"-"+hparams["meta"]["optimizer"]) as run:
         ae_params, bparam = problem.initial_value()
-        bparam = pytree_element_add(bparam, 0.0)
+        bparam = pytree_element_add(bparam, 0.5)
         mlflow.log_dict(hparams, artifact_file="hparams/hparams.json")
         artifact_uri = mlflow.get_artifact_uri()
         print("Artifact uri: {}".format(artifact_uri))
@@ -119,23 +102,26 @@ if __name__ == "__main__":
         data_loader = iter(get_mnist_data(batch_size=hparams["batch_size"], resize=True, filter=hparams['filter']))
         num_batches = meta_mnist(batch_size=hparams["batch_size"],filter=hparams['filter'])["num_batches"]
         print(f"num of bathces: {num_batches}")
-        compute_grad_fn = jit(grad(problem.objective, [0]))
+        compute_grad_fn = jit(grad(problem.objective, [0,1]))
 
         opt = OptimizerCreator(hparams["meta"]["optimizer"], learning_rate=hparams["natural_lr"]).get_optimizer()
         ma_loss = []
-        for epoch in range(500):
+        for epoch in range(hparams["warmup_period"]):
             for b_j in range(num_batches):
                 batch = next(data_loader)
-                grads = compute_grad_fn(ae_params, bparam, batch)
-                ae_params = opt.update_params(ae_params, grads[0], step_index=epoch)
+                ae_grads, b_grads = compute_grad_fn(ae_params, bparam, batch)
+                grads = ae_grads
+                ae_params = opt.update_params(ae_params, ae_grads, step_index=epoch)
+                bparam = opt.update_params(bparam, b_grads, step_index=epoch)
                 loss = problem.objective(ae_params, bparam, batch)
                 ma_loss.append(loss)
                 print(f"loss:{loss}  norm:{l2_norm(grads)}")
-            opt.lr = exp_decay(epoch, hparams["descent_lr"])
+            opt.lr = exp_decay(epoch, hparams["natural_lr"])
             mlflow.log_metrics({
                 "train_loss": float(loss),
                 "ma_loss": float(ma_loss[-1]),
                 "learning_rate": float(opt.lr),
+                "bparam":float(bparam[0]),
                 "norm grads": float(l2_norm(grads))
             }, epoch)
 
@@ -153,8 +139,11 @@ if __name__ == "__main__":
 
         val_loss = problem.objective(ae_params, bparam, (test_images, test_labels))
         print(f"val loss: {val_loss, type(ae_params)}")
-
+        val_acc = accuracy(ae_params, bparam, (test_images, test_labels))
+        print(f"val acc: {val_acc}")
+        mlflow.log_metric("val_acc", float(val_acc))
         mlflow.log_metric("val_loss", float(val_loss))
+
 
 
         q = float(l2_norm(grads[0]))
@@ -169,3 +158,11 @@ if __name__ == "__main__":
             print('sw none')
     with open(artifact_uri2+'params.pkl', 'wb') as file:
         pickle.dump(ae_params, file)
+
+    with open(artifact_uri2+'params.pkl', 'rb') as file:
+        p = pickle.load(file)
+
+    val_loss = problem.objective(p, bparam, (test_images, test_labels))
+    print(f"val loss: {val_loss, type(ae_params)}")
+    val_acc = accuracy(p, bparam, (test_images, test_labels))
+    print(f"val acc: {val_acc}")

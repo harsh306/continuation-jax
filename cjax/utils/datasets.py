@@ -139,8 +139,6 @@ def mnist(permute_train=False, resize=False, filter=False):
         perm = np.random.RandomState(0).permutation(train_images.shape[0])
         train_images = train_images[perm]
         train_labels = train_labels[perm]
-    train_images = center_data(train_images)
-    test_images = center_data(test_images)
     return train_images, train_labels, test_images, test_labels
 
 
@@ -168,11 +166,36 @@ def get_mnist_data(batch_size, resize, filter=False):
         train_labels = train_labels[train_filter]
     train_labels = _one_hot(train_labels, 10)
     #test_labels = _one_hot(test_labels, 10)
-    train_images = center_data(train_images)
+    #train_images = center_data(train_images)
     total_data_len = train_images.shape[0]
     num_complete_batches, leftover = divmod(total_data_len, batch_size)
     num_batches = num_complete_batches + bool(leftover)
 
+    rng = npr.RandomState(0)
+    while True:
+        perm = rng.permutation(total_data_len)
+        for i in range(num_batches):
+            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
+            yield train_images[batch_idx], train_labels[batch_idx]
+
+def mnist_preprocess_cont(resize, filter):
+    train_images, train_labels, test_images, test_labels = mnist(
+        permute_train=False, resize=resize, filter=filter)
+    train_images = center_data(train_images)
+    test_images = center_data(test_images)
+    return train_images, train_labels, test_images, test_labels
+
+
+def get_mnist_batch_alter(train_images, train_labels, test_images,
+                    test_labels, alter: list, batch_size, resize, filter=False):
+    alter = 1.0 - alter[0]
+    if alter<0.1:
+        alter = 0.1
+    batch_size = int(batch_size/alter)
+    print("batch_size: ",batch_size)
+    total_data_len = train_images.shape[0]
+    num_complete_batches, leftover = divmod(total_data_len, batch_size)
+    num_batches = num_complete_batches + bool(leftover)
     rng = npr.RandomState(0)
     while True:
         perm = rng.permutation(total_data_len)

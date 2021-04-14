@@ -2,7 +2,7 @@ from cjax.continuation.base_continuation import Continuation
 from cjax.continuation.states.state_variables import StateVariable, StateWriter
 from cjax.optimizer.optimizer import OptimizerCreator
 from cjax.continuation.methods.predictor.natural_predictor import NaturalPredictor
-from cjax.continuation.methods.corrector.unconstrained_corrector import (
+from cjax.continuation.methods.corrector.unconstrained_corrector_data import (
     UnconstrainedCorrector,
 )
 from jax.tree_util import *
@@ -18,11 +18,12 @@ class NaturalContinuation(Continuation):
 
     Composed of natural predictor and unconstrained corrector"""
 
-    def __init__(self, state, bparam, counter, objective, hparams):
+    def __init__(self, state, bparam, counter, objective, accuracy_fn, hparams):
         self._state_wrap = StateVariable(state, counter)
         self._bparam_wrap = StateVariable(bparam, counter)
         self.objective = objective
         self.value_func = jit(self.objective)
+        self.accuracy_fn = jit(accuracy_fn)
         self._value_wrap = StateVariable(2.0, counter)
         self._quality_wrap = StateVariable(0.25, counter)
         self.sw = None
@@ -73,9 +74,10 @@ class NaturalContinuation(Continuation):
                 concat_states=concat_states,
                 grad_fn=self.grad_fn,
                 value_fn=self.value_func,
+                accuracy_fn=self.accuracy_fn,
                 hparams=self.hparams,
             )
-            state, bparam, quality, value, val_loss = corrector.correction_step()
+            state, bparam, quality, value, val_loss, val_acc = corrector.correction_step()
 
             clip_lambda = lambda g: np.where(
                 (g > self.hparams["lambda_max"]), self.hparams["lambda_max"], g
@@ -106,6 +108,7 @@ class NaturalContinuation(Continuation):
                 "train_loss": float(self._value_wrap.state),
                 "delta_s": float(self._delta_s),
                 "norm grads": float(self._quality_wrap.state),
-                "val_loss": float(val_loss)
+                "val_loss": float(val_loss),
+                "val_acc": float(val_acc)
             }, i)
 

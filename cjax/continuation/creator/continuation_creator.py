@@ -38,6 +38,7 @@ class ContinuationCreator:
                 bparam,
                 counter=0,
                 objective=self.problem.objective,
+                accuracy_fn=self.problem.accuracy_fn,
                 hparams=self.hparams,
             )
         elif self.hparams["meta"]["method"] == "secant":
@@ -97,6 +98,7 @@ class ContinuationCreator:
                 counter=0,
                 objective=self.problem.objective,
                 dual_objective=self.problem.dual_objective,
+                accuracy_fn = self.problem.accuracy_fn,
                 hparams=self.hparams,
                 key_state=self.key,
             )

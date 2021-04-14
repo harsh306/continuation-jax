@@ -180,10 +180,12 @@ def bif_plot(dpath, func):
     # )
     # clb = plt.colorbar(sm)
     # clb.ax.set_title("Train Loss")
+    # plt.show()
+    # plt.close(fig)
+    #plt.clf()
     return fig
 
-    # plt.show()
-    # plt.clf()
+
 
 
 def bif_plotv(path, func):
@@ -225,7 +227,7 @@ def bif_plotv(path, func):
 
 if __name__ == "__main__":
 
-    path = f"/opt/ml/mlruns/2/77c896cc0e074593a50643a445b68b84/artifacts/output/"
+    path = f"/opt/ml/mlruns/2/bba8ace488ff4d39bdc841073253d902/artifacts/output"
     bif_plot(path, pick_array)
     # d = read_data(path)
     # print(len(d))
