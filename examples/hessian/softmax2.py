@@ -25,35 +25,23 @@ from examples.torch_data import get_data
 npr.seed(7)
 orth_init_cont = True
 input_shape = (30000, 36)
-def accuracy(params, bparams, batch):
+def accuracy(params, batch):
     inputs, targets = batch
     target_class = np.argmax(targets, axis=-1)
     predicted_class = np.argmax(predict_fun(params, inputs), axis=-1)
     return np.mean(predicted_class == target_class)
 
-if orth_init_cont:
-    # init_fun, predict_fun = stax.serial(
-    #     #HomotopyDense(out_dim=18, W_init=orthogonal(), b_init=zeros),
-    #     Dense(out_dim=10, W_init=normal(), b_init=normal())
-    # )
-    init_fun, predict_fun = Dense(out_dim=10, W_init=normal(), b_init=normal())
 
+init_fun, predict_fun = Dense(out_dim=10, W_init=normal(), b_init=normal())
 
-else:
-    # baseline network
-    init_fun, predict_fun = stax.serial(
-        Dense(out_dim=18), Relu,
-        Dense(out_dim=10), LogSoftmax
-    )
 
 class ModelContClassifier(AbstractProblem):
     def __init__(self):
         self.HPARAMS_PATH = "hparams.json"
 
     @staticmethod
-    def objective(params, bparam, batch) -> float:
+    def objective(params, batch) -> float:
         x, targets = batch
-        x = np.reshape(x, (x.shape[0], -1))
         logits = predict_fun(params, x)
         logits = logits - logsumexp(logits, axis=1, keepdims=True)
         loss = -np.mean(np.sum(logits * targets, axis=1))
@@ -61,25 +49,19 @@ class ModelContClassifier(AbstractProblem):
         return loss
 
     @staticmethod
-    def accuracy(params, bparam, batch):
+    def accuracy(params, batch):
         x, targets = batch
         x = np.reshape(x, (x.shape[0], -1))
         target_class = np.argmax(targets, axis=-1)
-        predicted_class = np.argmax(predict_fun(params, x, bparam=bparam[0], activation_func=relu), axis=-1)
+        predicted_class = np.argmax(predict_fun(params, x), axis=-1)
         return np.mean(predicted_class == target_class)
 
     def initial_value(self):
         ae_shape, ae_params = init_fun(random.PRNGKey(0), input_shape)
-        bparam = [np.array([0.00], dtype=np.float64)]
-        return ae_params, bparam
+        return ae_params
 
     def initial_values(self):
-        state_0, bparam_0 = self.initial_value()
-        state_1 = tree_map(lambda a: a - 0.08, state_0)
-        states = [state_0, state_1]
-        bparam_1 = tree_map(lambda a: a + 0.05, bparam_0)
-        bparams = [bparam_0, bparam_1]
-        return states, bparams
+        return 0
 
 
 if __name__ == "__main__":
@@ -90,8 +72,8 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri(hparams['meta']["mlflow_uri"])
     mlflow.set_experiment(hparams['meta']["name"])
     with mlflow.start_run(run_name=hparams['meta']["method"]+"-"+hparams["meta"]["optimizer"]) as run:
-        ae_params, bparam = problem.initial_value()
-        bparam = pytree_element_add(bparam, 0.0)
+        ae_params = problem.initial_value()
+
         mlflow.log_dict(hparams, artifact_file="hparams/hparams.json")
         artifact_uri = mlflow.get_artifact_uri()
         print("Artifact uri: {}".format(artifact_uri))
@@ -114,12 +96,9 @@ if __name__ == "__main__":
         for epoch in range(hparams["warmup_period"]):
             for b_j in range(num_batches):
                 batch = next(data_loader)
-                ae_grads = compute_grad_fn(ae_params, bparam, batch)
+                ae_grads = compute_grad_fn(ae_params, batch)
                 ae_params = opt.update_params(ae_params, ae_grads[0], step_index=epoch)
-                # if ((epoch%5)==0):
-                #     pytree_element_add(ae_params, 0.0001)
-                #bparam = opt.update_params(bparam, b_grads, step_index=epoch)
-                loss = problem.objective(ae_params, bparam, batch)
+                loss = problem.objective(ae_params, batch)
                 ma_loss.append(loss)
                 print(f"loss:{loss}  norm:{l2_norm(ae_grads)}")
             #opt.lr = exp_decay(epoch, hparams["natural_lr"])
@@ -127,7 +106,6 @@ if __name__ == "__main__":
                 "train_loss": float(loss),
                 "ma_loss": float(ma_loss[-1]),
                 "learning_rate": float(opt.lr),
-                "bparam":float(bparam[0]),
                 "norm grads": float(l2_norm(ae_grads))
             }, epoch)
 
@@ -143,9 +121,9 @@ if __name__ == "__main__":
             permute_train=False, resize=True, filter=hparams["filter"]
         )
 
-        val_loss = problem.objective(ae_params, bparam, (test_images, test_labels))
+        val_loss = problem.objective(ae_params, (test_images, test_labels))
         print(f"val loss: {val_loss, type(ae_params)}")
-        val_acc = accuracy(ae_params, bparam, (test_images, test_labels))
+        val_acc = accuracy(ae_params, (test_images, test_labels))
         print(f"val acc: {val_acc}")
         mlflow.log_metric("val_acc", float(val_acc))
         mlflow.log_metric("val_loss", float(val_loss))
@@ -156,7 +134,6 @@ if __name__ == "__main__":
         if sw:
             sw.write([
                 {'u':ae_params},
-                {'t': bparam},
                 {'f':loss},
                 {'q':q},
             ])
@@ -165,20 +142,10 @@ if __name__ == "__main__":
     with open(artifact_uri2+'params.pkl', 'wb') as file:
         pickle.dump(ae_params, file)
 
-    with open(artifact_uri2+'params.pkl', 'rb') as file:
-        p = pickle.load(file)
-
-    val_loss = problem.objective(p, bparam, (test_images, test_labels))
-    print(f"val loss: {val_loss, type(ae_params)}")
-    val_acc = accuracy(p, bparam, (test_images, test_labels))
-    print(f"val acc: {val_acc}")
-
-    dg2 = hessian(problem.objective, argnums=[0])(p, bparam, (train_images, train_labels))
+    dg2 = hessian(problem.objective, argnums=[0])(ae_params, batch)
     mtree, _ = ravel_pytree(dg2)
     eigen = np.linalg.eigvals(mtree.reshape(370, 370)).real
     eigen = sorted(eigen, reverse=True)
-    print(eigen)
-    print(len(eigen))
     neg_count = len(list(filter(lambda x: (x < 0), eigen)))
 
     # we can also do len(list1) - neg_count

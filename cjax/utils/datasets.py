@@ -133,8 +133,6 @@ def mnist(permute_train=False, resize=False, filter=False):
     train_labels = _one_hot(train_labels, 10)
     test_labels = _one_hot(test_labels, 10)
 
-
-
     if permute_train:
         perm = np.random.RandomState(0).permutation(train_images.shape[0])
         train_images = train_images[perm]
@@ -178,11 +176,12 @@ def get_mnist_data(batch_size, resize, filter=False):
             batch_idx = perm[i * batch_size : (i + 1) * batch_size]
             yield train_images[batch_idx], train_labels[batch_idx]
 
-def mnist_preprocess_cont(resize, filter):
+def mnist_preprocess_cont(resize, filter, center=True):
     train_images, train_labels, test_images, test_labels = mnist(
         permute_train=False, resize=resize, filter=filter)
-    train_images = center_data(train_images)
-    test_images = center_data(test_images)
+    if center:
+        train_images = center_data(train_images)
+        test_images = center_data(test_images)
     return train_images, train_labels, test_images, test_labels
 
 
