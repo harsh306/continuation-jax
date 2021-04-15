@@ -1,3 +1,6 @@
+"""
+Original code from: https://github.com/google/jax/tree/master/examples
+"""
 import time
 
 import numpy.random as npr
@@ -87,3 +90,7 @@ if __name__ == "__main__":
 
   print("Positive numbers in the eigen: ", pos_count)
   print("Negative numbers in the eigen: ", neg_count)
+
+  # outputs:
+  #Positive numbers in the eigen:  194
+  #Negative numbers in the eigen:  176

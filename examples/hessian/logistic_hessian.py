@@ -46,8 +46,8 @@ for i in range(1000):
     b = b - 0.005 * b_grad
 print("loss:",loss(W, b))
 H = hessian(loss)(W, b)
-print(b)
 h, _ = ravel_pytree(H)
 eigen_vals = jnp.linalg.eigvals(h.reshape(9,9)).real
 eigen_vals = sorted(eigen_vals, reverse=True)
 print(eigen_vals) # should be all positive for convex function
+#outputs: [0.2406996, 0.16962789, 0.13137847, 0.07919562, 0.037625454, 0.02834966, 0.00042202187, 0.00042201488, 0.00037239227]
