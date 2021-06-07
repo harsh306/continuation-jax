@@ -2,6 +2,7 @@ from cjax.continuation.base_continuation import Continuation
 from cjax.continuation.states.state_variables import StateVariable, StateWriter
 from cjax.optimizer.optimizer import OptimizerCreator
 from cjax.continuation.methods.predictor.natural_predictor import NaturalPredictor
+from cjax.utils.data_img_gamma import mnist_gamma
 from cjax.continuation.methods.corrector.unconstrained_corrector_data import (
     UnconstrainedCorrector,
 )
@@ -28,6 +29,10 @@ class NaturalContinuation(Continuation):
         self._quality_wrap = StateVariable(0.25, counter)
         self.sw = None
         self.hparams = hparams
+        if hparams["meta"]["dataset"] == "mnist":
+            self.dataset_tuple = mnist_gamma(
+                resize=hparams["resize_to_small"],
+                filter=hparams["filter"])
         self.continuation_steps = hparams["continuation_steps"]
 
         self.output_file = hparams["meta"]["output_dir"]
@@ -76,6 +81,7 @@ class NaturalContinuation(Continuation):
                 value_fn=self.value_func,
                 accuracy_fn=self.accuracy_fn,
                 hparams=self.hparams,
+                dataset_tuple=self.dataset_tuple,
             )
             state, bparam, quality, value, val_loss, val_acc = corrector.correction_step()
 

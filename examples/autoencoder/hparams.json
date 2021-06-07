@@ -1,6 +1,6 @@
 {
   "meta": {
-    "name": "4-activation-continuation-class",
+    "name": "4-2-4-data-continuation",
     "description": "numerical continuation examples for activation function on AE with PCA initialization",
     "method": "parc-fix-perturb",
     "optimizer": "adam",
@@ -9,10 +9,10 @@
     "output_dir": "output/",
     "mlflow_uri": "http://127.0.0.1:5000"
   },
-  "continuation_steps": 100,
-  "hidden_activation": "sigmoid",
-  "pca_init": true,
-  "n_perturbs": 5,
+  "continuation_steps": 300,
+  "hidden_activation": "relu",
+  "init_m": "None",
+  "n_perturbs": 3,
   "delta_s": 0.05,
   "max_arc_len": 0.02,
   "min_arc_len": 0.008,
@@ -29,8 +29,8 @@
   "max_clip_grad": 0.02,
   "net_spacing_param": 0.007,
   "net_spacing_bparam": 0.003,
-  "lagrange_init": 0.01,
-  "natural_lr": 0.005,
+  "lagrange_init": 0.001,
+  "natural_lr": 0.001,
   "ascent_lr": 0.00003,
   "descent_lr": 0.0005,
   "ascent_period": 4,
@@ -51,5 +51,5 @@
   "natural_start": true,
   "double_natural_start": true,
   "local_test_measure": "ma_loss",
-  "loss_tol": 0.0000002
+  "loss_tol": 2e-5
 }

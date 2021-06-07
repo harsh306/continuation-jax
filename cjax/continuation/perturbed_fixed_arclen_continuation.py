@@ -3,11 +3,12 @@ from cjax.continuation.arc_len_continuation import (
     Continuation,
 )
 from cjax.continuation.states.state_variables import StateWriter
+from cjax.utils.data_img_gamma import mnist_gamma
 from cjax.continuation.methods.predictor.arc_secant_predictor import SecantPredictor
 from cjax.continuation.methods.corrector.perturb_parc_evolve_data import (
     PerturbedFixedCorrecter,
 )
-from cjax.continuation.methods.corrector.unconstrained_corrector import (
+from cjax.continuation.methods.corrector.unconstrained_corrector_data import (
     UnconstrainedCorrector,
 )
 import jax.numpy as np
@@ -58,6 +59,10 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
         self.value_func = jit(self.objective)
 
         self.hparams = hparams
+        if hparams["meta"]["dataset"] == "mnist":
+            self.dataset_tuple = mnist_gamma(
+                resize=hparams["resize_to_small"],
+                filter=hparams["filter"])
 
         self._value_wrap = StateVariable(
             0.06, counter
@@ -117,16 +122,18 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                     concat_states=concat_states,
                     grad_fn=self.compute_grad_fn,
                     value_fn=self.value_func,
+                    accuracy_fn=self.accuracy_fn1,
                     hparams=self.hparams,
+                    dataset_tuple=self.dataset_tuple,
                 )
-                state, bparam, quality, value, val_loss = corrector.correction_step()
+                state, bparam, quality, value, val_loss, val_acc = corrector.correction_step()
                 if self.hparams["double_natural_start"]:  # TODO: refactor natural and double natural start
                     self._prev_state = state
                     self._prev_bparam = bparam
                     print(f" unconstrained solver for 2nd step")
                     concat_states = [
                         self._prev_state,
-                        pytree_element_add(self._prev_bparam, 0.04),
+                        pytree_element_add(self._prev_bparam, 0.07),
                     ]
 
                     corrector = UnconstrainedCorrector(
@@ -134,9 +141,11 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                         concat_states=concat_states,
                         grad_fn=self.compute_grad_fn,
                         value_fn=self.value_func,
+                        accuracy_fn=self.accuracy_fn1,
                         hparams=self.hparams,
+                        dataset_tuple=self.dataset_tuple,
                     )
-                    state, bparam, quality, value, val_loss = corrector.correction_step()
+                    state, bparam, quality, value, val_loss, val_acc = corrector.correction_step()
 
                 self._state_wrap.state = state
                 self._bparam_wrap.state = bparam
@@ -185,8 +194,6 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 predictor.secant_direction,
                 {"state": predictor.state, "bparam": predictor.bparam},
             ]
-
-
             corrector = PerturbedFixedCorrecter(
                 objective=self.objective,
                 dual_objective=self.dual_objective,
@@ -201,6 +208,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
                 pred_state=[self._state_wrap.state, self._bparam_wrap.state],
                 pred_prev_state=[self._state_wrap.state, self._bparam_wrap.state],
                 counter=self.continuation_steps,
+                dataset_tuple=self.dataset_tuple,
             )
             self._prev_state = copy.deepcopy(self._state_wrap.state)
             self._prev_bparam = copy.deepcopy(self._bparam_wrap.state)

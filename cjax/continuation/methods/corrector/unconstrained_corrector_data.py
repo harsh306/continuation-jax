@@ -4,7 +4,9 @@ from jax import grad, jit
 from jax.experimental.optimizers import l2_norm
 from cjax.continuation.methods.corrector.base_corrector import Corrector
 from cjax.optimizer.optimizer import OptimizerCreator
-from cjax.utils.datasets import get_mnist_data, meta_mnist, mnist, mnist_preprocess_cont, get_mnist_batch_alter
+#from cjax.utils.datasets import get_mnist_data, meta_mnist, mnist, mnist_preprocess_cont, get_mnist_batch_alter
+from cjax.utils.datasets import meta_mnist
+from cjax.utils.data_img_gamma import get_mnist_batch_alter, mnist_gamma
 from cjax.utils.evolve_utils import running_mean, exp_decay
 from examples.torch_data import get_data
 import math
@@ -13,7 +15,7 @@ import math
 class UnconstrainedCorrector(Corrector):
     """Minimize the objective using gradient based method."""
 
-    def __init__(self, objective, concat_states, grad_fn, value_fn, accuracy_fn , hparams):
+    def __init__(self, objective, concat_states, grad_fn, value_fn, accuracy_fn , hparams, dataset_tuple):
         self.concat_states = concat_states
         self._state = None
         self._bparam = None
@@ -26,15 +28,9 @@ class UnconstrainedCorrector(Corrector):
         self.hparams = hparams
         self.grad_fn = grad_fn
         self.value_fn = value_fn
-        # self.data_loader = get_data(dataset=hparams["meta"]['dataset'],
-        #                                        batch_size=hparams['batch_size'],
-        #                                        num_workers=hparams['data_workers'],
-        #                             train_only=True, test_only=False)
         if hparams["meta"]["dataset"] == "mnist":
             (self.train_images, self.train_labels,
-             self.test_images, self.test_labels) = mnist_preprocess_cont(
-                resize=hparams["resize_to_small"],
-                filter=hparams["filter"])
+             self.test_images, self.test_labels) = dataset_tuple
 
             self.data_loader = iter(
                 get_mnist_batch_alter(
@@ -72,12 +68,13 @@ class UnconstrainedCorrector(Corrector):
                 self.train_labels,
                 self.test_images,
                 self.test_labels,
-                alter=[0.0],
+                alter=self._bparam,
                 batch_size=self.hparams["batch_size"],
                 resize=self.hparams["resize_to_small"],
                 filter=self.hparams["filter"]
             )
         )
+        print("learn_rate", self.opt.lr)
         for k in range(self.warmup_period):
             for b_j in range(self.num_batches):
                 batch = next(self.data_loader)

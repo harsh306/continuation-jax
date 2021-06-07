@@ -111,6 +111,14 @@ def img_resize(train_images):
         train_data.append(resized_img)
     return np.asarray(train_data)
 
+def img_resize_noise(train_images):
+    train_data = []
+    for img in train_images:
+        #resized_img = cv2.resize(img, (6, 6))
+        dst = cv2.GaussianBlur(img, (5, 5), 0.0, cv2.BORDER_DEFAULT)
+        #train_data.append(resized_img)
+    return dst #np.asarray(train_data)
+
 
 def mnist(permute_train=False, resize=False, filter=False):
     """Download, parse and process MNIST data to unit scale and one-hot labels."""
@@ -132,7 +140,6 @@ def mnist(permute_train=False, resize=False, filter=False):
     test_images = _partial_flatten(test_images) / np.float32(255.0)
     train_labels = _one_hot(train_labels, 10)
     test_labels = _one_hot(test_labels, 10)
-
     if permute_train:
         perm = np.random.RandomState(0).permutation(train_images.shape[0])
         train_images = train_images[perm]
@@ -164,7 +171,7 @@ def get_mnist_data(batch_size, resize, filter=False):
         train_labels = train_labels[train_filter]
     train_labels = _one_hot(train_labels, 10)
     #test_labels = _one_hot(test_labels, 10)
-    #train_images = center_data(train_images)
+    train_images = center_data(train_images)
     total_data_len = train_images.shape[0]
     num_complete_batches, leftover = divmod(total_data_len, batch_size)
     num_batches = num_complete_batches + bool(leftover)
@@ -190,6 +197,7 @@ def get_mnist_batch_alter(train_images, train_labels, test_images,
     alter = 1.0 - alter[0]
     if alter<0.1:
         alter = 0.1
+    # alter batch len
     batch_size = int(batch_size/alter)
     print("batch_size: ",batch_size)
     total_data_len = train_images.shape[0]
@@ -203,9 +211,24 @@ def get_mnist_batch_alter(train_images, train_labels, test_images,
             yield train_images[batch_idx], train_labels[batch_idx]
 
 
+
 if __name__ == "__main__":
-    train_images, _, test_images, _ = mnist(resize=False, filter=True)
-    print(train_images.shape[0])
-    print(test_images.shape[0])
-    # z = meta_mnist(5000)
-    print(meta_mnist(6742, True)["num_batches"])
+    train_images, _, _, _ = mnist_raw()
+    #train_images = _partial_flatten(train_images) / np.float32(255.0)
+    for src in train_images:
+        #src = train_images[0]#/np.float32(255.0)
+        #print(src)
+        #print(src/np.float32(255.0))
+        #print(src.shape)
+        dst = adjust_gamma(src, 0.5)
+        #dst = cv2.medianBlur(src, 3)
+        #src =cv2.resize(src, (6,6))
+        #dst = cv2.resize(dst, (6, 6))
+        print(dst.shape)
+    # cv2.imshow("Gaussian Smoothing", np.hstack((src, dst)))
+    # cv2.waitKey(0)  # waits until a key is pressed
+    # cv2.destroyAllWindows()
+    # print(train_images.shape[0])
+    # print(test_images.shape[0])
+    # # z = meta_mnist(5000)
+    # print(meta_mnist(6742, True)["num_batches"])

@@ -3,7 +3,7 @@ import numpy as onp
 from jax.experimental import stax
 from jax.nn.initializers import zeros, orthogonal, delta_orthogonal, uniform
 from jax.nn import sigmoid, hard_tanh, soft_sign, relu
-from jax.experimental.stax import Dense, Sigmoid, Softplus, Tanh
+from jax.experimental.stax import Dense, Sigmoid, Softplus, Tanh, Relu
 from cjax.optimizer.optimizer import GDOptimizer, AdamOptimizer, OptimizerCreator
 import numpy.random as npr
 from jax import random
@@ -17,7 +17,7 @@ import math
 import mlflow
 import json
 from cjax.utils.custom_nn import constant_2d, HomotopyDense, v_2d
-from cjax.utils.datasets import mnist, get_mnist_data, meta_mnist
+from cjax.utils.datasets import mnist, get_mnist_data, meta_mnist, mnist_preprocess_cont, get_mnist_batch_alter
 import pickle
 from examples.torch_data import get_data
 
@@ -28,40 +28,54 @@ num_steps = 10
 code_dim = 1
 npr.seed(7)
 
-pca_init = True
-orth_init = False
+with open("hparams.json", "r") as hfile:
+    t_hparams = json.load(hfile)
 
-if pca_init:
-    train_images, labels, _, _ = mnist(permute_train=False, resize=True, filter=True)
+if t_hparams['init_m'] == 'pca':
+    train_images, labels, _, _ = mnist_preprocess_cont(resize=True, filter=False)
     inputs = train_images
     inputs = center_data(inputs)
     u, s, v_t = onp.linalg.svd(inputs, full_matrices=False)
     I = np.eye(v_t.shape[-1])
     I_add = npr.normal(0.0, 0.002, size=I.shape)
     noisy_I = I + I_add
-    #print(np.mean(inputs-np.dot(u, np.multiply(s, v_t))))
 
     init_fun, predict_fun = stax.serial(
         HomotopyDense(out_dim=4, W_init=v_2d(v_t), b_init=zeros),
-        #HomotopyDense(out_dim=36, W_init=constant_2d(noisy_I), b_init=zeros),
-        #HomotopyDense(out_dim=36, W_init=constant_2d(noisy_I), b_init=zeros),
+        HomotopyDense(out_dim=2, W_init=constant_2d(noisy_I), b_init=zeros),
+        HomotopyDense(out_dim=4, W_init=constant_2d(noisy_I), b_init=zeros),
         Dense(out_dim=input_shape[-1], W_init=v_2d(v_t.T), b_init=zeros),
     )
     del inputs, train_images, _
-elif orth_init:
-    init_fun, predict_fun = stax.serial(
+elif t_hparams['init_m'] == 'orth':
+        init_fun, predict_fun = stax.serial(
         HomotopyDense(out_dim=4, W_init=orthogonal(), b_init=zeros),
-        # Dense(out_dim=36), Sigmoid,
-        # Dense(out_dim=36), Sigmoid,
+        HomotopyDense(out_dim=2, W_init=orthogonal(), b_init=zeros),
+        HomotopyDense(out_dim=4, W_init=orthogonal(), b_init=zeros),
         Dense(out_dim=input_shape[-1], W_init=orthogonal(), b_init=zeros),
     )
 else:
-    init_fun, predict_fun = stax.serial(
-        Dense(out_dim=18), Tanh,
-        #Dense(out_dim=36), Sigmoid,
-        #Dense(out_dim=36), Sigmoid,
-        Dense(out_dim=input_shape[-1]),
-    )
+    if t_hparams['hidden_activation'] == 'relu':
+        init_fun, predict_fun = stax.serial(
+            Dense(out_dim=4), Relu,
+            Dense(out_dim=2), Relu,
+            Dense(out_dim=4), Relu,
+            Dense(out_dim=input_shape[-1]),
+        )
+    elif t_hparams['hidden_activation'] == 'sigmoid':
+        init_fun, predict_fun = stax.serial(
+            Dense(out_dim=4), Sigmoid,
+            Dense(out_dim=2), Sigmoid,
+            Dense(out_dim=4), Sigmoid,
+            Dense(out_dim=input_shape[-1]),
+        )
+    else:
+        init_fun, predict_fun = stax.serial(
+            Dense(out_dim=4),
+            Dense(out_dim=2),
+            Dense(out_dim=4),
+            Dense(out_dim=input_shape[-1]),
+        )
 
 
 class PCATopologyAE(AbstractProblem):
@@ -74,7 +88,16 @@ class PCATopologyAE(AbstractProblem):
         x = np.reshape(x, (x.shape[0], -1))
         logits = predict_fun(params, x, bparam=bparam[0], activation_func=sigmoid)
         loss = np.mean(np.square((np.subtract(logits, x))))
-        loss += 5e-5 * (l2_norm(params)) #+ l2_norm(bparam))
+        #loss += 5e-6 * (l2_norm(params)) #+ l2_norm(bparam))
+        return loss
+
+    @staticmethod
+    def accuracy(params, bparam, batch) -> float:
+        x, _ = batch
+        x = np.reshape(x, (x.shape[0], -1))
+        logits = predict_fun(params, x, bparam=bparam[0], activation_func=sigmoid)
+        loss = np.mean(np.square((np.subtract(logits, x))))
+        #loss += 5e-6 * (l2_norm(params))  # + l2_norm(bparam))
         return loss
 
     def initial_value(self):
@@ -99,6 +122,10 @@ if __name__ == "__main__":
     problem = PCATopologyAE()
     with open(problem.HPARAMS_PATH, "r") as hfile:
         hparams = json.load(hfile)
+
+    train_images, train_labels, test_images, test_labels = mnist_preprocess_cont(
+        resize=True, filter=hparams["filter"]
+    )
     mlflow.set_tracking_uri(hparams['meta']["mlflow_uri"])
     mlflow.set_experiment(hparams['meta']["name"])
     with mlflow.start_run(run_name=hparams['meta']["method"]+"-"+hparams["meta"]["optimizer"]) as run:
@@ -115,8 +142,10 @@ if __name__ == "__main__":
         file_name = f"{artifact_uri2}/version.jsonl"
 
         sw = StateWriter(file_name=file_name)
-
-        data_loader = iter(get_mnist_data(batch_size=hparams["batch_size"], resize=True, filter=hparams['filter']))
+        data_loader = iter(get_mnist_batch_alter(train_images, train_labels, test_images, test_labels,
+                                                 [0.0], batch_size=hparams["batch_size"],
+                                                 resize=True, filter=hparams['filter'] ))
+        #data_loader = iter(get_mnist_data(batch_size=hparams["batch_size"], resize=True, filter=hparams['filter']))
         num_batches = meta_mnist(batch_size=hparams["batch_size"],filter=hparams['filter'])["num_batches"]
         print(f"num of bathces: {num_batches}")
         compute_grad_fn = jit(grad(problem.objective, [0]))
@@ -147,9 +176,7 @@ if __name__ == "__main__":
                     print(f"stopping at {epoch}")
                     break
 
-        train_images, train_labels, test_images, test_labels = mnist(
-            permute_train=False, resize=True, filter=hparams["filter"]
-        )
+
 
         val_loss = problem.objective(ae_params, bparam, (test_images, test_labels))
         print(f"val loss: {val_loss, type(ae_params)}")

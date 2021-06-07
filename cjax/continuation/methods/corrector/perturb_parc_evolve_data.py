@@ -14,7 +14,9 @@ import numpy.random as npr
 from cjax.utils.evolve_utils import *
 import numpy as onp
 from examples.torch_data import get_data
-from cjax.utils.datasets import get_mnist_data, meta_mnist, mnist, get_mnist_batch_alter, mnist_preprocess_cont
+#from cjax.utils.datasets import get_mnist_data, meta_mnist, mnist, get_mnist_batch_alter, mnist_preprocess_cont
+from cjax.utils.data_img_gamma import get_mnist_batch_alter, mnist_gamma
+from cjax.utils.datasets import meta_mnist
 
 
 class PerturbedFixedCorrecter(Corrector):
@@ -35,6 +37,7 @@ class PerturbedFixedCorrecter(Corrector):
         pred_state,
         pred_prev_state,
         counter,
+        dataset_tuple
     ):
         self.concat_states = concat_states
         self._state = None
@@ -63,11 +66,10 @@ class PerturbedFixedCorrecter(Corrector):
         self.counter = counter
         self.value_fn = value_fn
         self.accuracy_fn1 = accuracy_fn1
+        self.dataset_tuple = dataset_tuple
         if hparams["meta"]["dataset"] == "mnist":
             (self.train_images, self.train_labels,
-             self.test_images, self.test_labels) = mnist_preprocess_cont(
-                resize=hparams["resize_to_small"],
-                filter=hparams["filter"])
+             self.test_images, self.test_labels) = dataset_tuple
 
             self.data_loader = iter(
                 get_mnist_batch_alter(
@@ -200,7 +202,7 @@ class PerturbedFixedCorrecter(Corrector):
                     self.train_labels,
                     self.test_images,
                     self.test_labels,
-                    alter=[0.0],
+                    alter=self._bparam,
                     batch_size=self.hparams["batch_size"],
                     resize=self.hparams["resize_to_small"],
                     filter=self.hparams["filter"]

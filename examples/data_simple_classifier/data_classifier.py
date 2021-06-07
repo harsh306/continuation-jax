@@ -55,9 +55,17 @@ class DataContClassifier(AbstractProblem):
         loss += 5e-7 * (l2_norm(params)) #+ l2_norm(bparam))
         return loss
 
+    @staticmethod
+    def accuracy(params, bparam, batch):
+        x, targets = batch
+        x = np.reshape(x, (x.shape[0], -1))
+        target_class = np.argmax(targets, axis=-1)
+        predicted_class = np.argmax(predict_fun(params, x, bparam=bparam[0], activation_func=relu), axis=-1)
+        return np.mean(predicted_class == target_class)
+
     def initial_value(self):
         ae_shape, ae_params = init_fun(random.PRNGKey(0), input_shape)
-        bparam = [np.array([0.00], dtype=np.float64)]
+        bparam = [np.array([0.01], dtype=np.float64)]
         return ae_params, bparam
 
     def initial_values(self):

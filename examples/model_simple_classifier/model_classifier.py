@@ -23,7 +23,7 @@ import pickle
 from examples.torch_data import get_data
 
 npr.seed(7)
-orth_init_cont = True
+orth_init_cont = False
 input_shape = (30000, 36)
 def accuracy(params, bparams, batch):
     inputs, targets = batch
@@ -32,17 +32,15 @@ def accuracy(params, bparams, batch):
     return np.mean(predicted_class == target_class)
 
 if orth_init_cont:
-    # init_fun, predict_fun = stax.serial(
-    #     #HomotopyDense(out_dim=18, W_init=orthogonal(), b_init=zeros),
-    #     Dense(out_dim=10, W_init=normal(), b_init=normal())
-    # )
-    init_fun, predict_fun = Dense(out_dim=10, W_init=normal(), b_init=normal())
-
-
+    init_fun, predict_fun = stax.serial(
+        HomotopyDense(out_dim=18, W_init=orthogonal(), b_init=zeros),
+        Dense(out_dim=10, W_init=normal(), b_init=normal())
+    )
+    #init_fun, predict_fun = Dense(out_dim=10, W_init=normal(), b_init=normal())
 else:
     # baseline network
     init_fun, predict_fun = stax.serial(
-        Dense(out_dim=18), Relu,
+        Dense(out_dim=18),
         Dense(out_dim=10), LogSoftmax
     )
 
@@ -116,13 +114,11 @@ if __name__ == "__main__":
                 batch = next(data_loader)
                 ae_grads = compute_grad_fn(ae_params, bparam, batch)
                 ae_params = opt.update_params(ae_params, ae_grads[0], step_index=epoch)
-                # if ((epoch%5)==0):
-                #     pytree_element_add(ae_params, 0.0001)
                 #bparam = opt.update_params(bparam, b_grads, step_index=epoch)
                 loss = problem.objective(ae_params, bparam, batch)
                 ma_loss.append(loss)
                 print(f"loss:{loss}  norm:{l2_norm(ae_grads)}")
-            #opt.lr = exp_decay(epoch, hparams["natural_lr"])
+            opt.lr = exp_decay(epoch, hparams["natural_lr"])
             mlflow.log_metrics({
                 "train_loss": float(loss),
                 "ma_loss": float(ma_loss[-1]),
@@ -150,8 +146,6 @@ if __name__ == "__main__":
         mlflow.log_metric("val_acc", float(val_acc))
         mlflow.log_metric("val_loss", float(val_loss))
 
-
-
         q = float(l2_norm(ae_grads[0]))
         if sw:
             sw.write([
@@ -173,16 +167,16 @@ if __name__ == "__main__":
     val_acc = accuracy(p, bparam, (test_images, test_labels))
     print(f"val acc: {val_acc}")
 
-    dg2 = hessian(problem.objective, argnums=[0])(p, bparam, (train_images, train_labels))
-    mtree, _ = ravel_pytree(dg2)
-    eigen = np.linalg.eigvals(mtree.reshape(370, 370)).real
-    eigen = sorted(eigen, reverse=True)
-    print(eigen)
-    print(len(eigen))
-    neg_count = len(list(filter(lambda x: (x < 0), eigen)))
-
-    # we can also do len(list1) - neg_count
-    pos_count = len(list(filter(lambda x: (x >= 0), eigen)))
-
-    print("Positive numbers in the eigen: ", pos_count)
-    print("Negative numbers in the eigen: ", neg_count)
+    # dg2 = hessian(problem.objective, argnums=[0])(p, bparam, (train_images, train_labels))
+    # mtree, _ = ravel_pytree(dg2)
+    # eigen = np.linalg.eigvals(mtree.reshape(370, 370)).real
+    # eigen = sorted(eigen, reverse=True)
+    # print(eigen)
+    # print(len(eigen))
+    # neg_count = len(list(filter(lambda x: (x < 0), eigen)))
+    #
+    # # we can also do len(list1) - neg_count
+    # pos_count = len(list(filter(lambda x: (x >= 0), eigen)))
+    #
+    # print("Positive numbers in the eigen: ", pos_count)
+    # print("Negative numbers in the eigen: ", neg_count)
