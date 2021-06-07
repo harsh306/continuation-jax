@@ -3,8 +3,8 @@ from typing import Dict
 from cjax.continuation.base_continuation import Continuation
 from cjax.continuation.natural_continuation import NaturalContinuation
 from cjax.continuation.secant_continuation import SecantContinuation
-from cjax.continuation.arc_len_continuation import PseudoArcLenContinuation
-from cjax.continuation.perturbed_arc_len_continuation import (
+from cjax.continuation._arc_len_continuation import PseudoArcLenContinuation
+from cjax.continuation._perturbed_arc_len_continuation import (
     PerturbedPseudoArcLenContinuation,
 )
 from cjax.continuation.perturbed_fixed_arclen_continuation import (

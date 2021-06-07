@@ -1,4 +1,4 @@
-from cjax.continuation.arc_len_continuation import PseudoArcLenContinuation
+from cjax.continuation._arc_len_continuation import PseudoArcLenContinuation
 from cjax.continuation.states.state_variables import StateWriter
 from cjax.continuation.methods.predictor.secant_predictor import SecantPredictor
 from jax.experimental.optimizers import l2_norm
