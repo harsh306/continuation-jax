@@ -4,8 +4,7 @@ from jax import grad, jit
 from jax.experimental.optimizers import l2_norm
 from cjax.continuation.methods.corrector.base_corrector import Corrector
 from cjax.optimizer.optimizer import OptimizerCreator
-#from cjax.utils.datasets import get_mnist_data, meta_mnist, mnist, mnist_preprocess_cont, get_mnist_batch_alter
-from cjax.utils.datasets import meta_mnist
+from cjax.utils.datasets import meta_mnist, get_preload_mnist_data, mnist
 from cjax.utils.data_img_gamma import get_mnist_batch_alter, mnist_gamma
 from cjax.utils.evolve_utils import running_mean, exp_decay
 from examples.torch_data import get_data
@@ -28,22 +27,36 @@ class UnconstrainedCorrector(Corrector):
         self.hparams = hparams
         self.grad_fn = grad_fn
         self.value_fn = value_fn
+        self._assign_states()
         if hparams["meta"]["dataset"] == "mnist":
             (self.train_images, self.train_labels,
              self.test_images, self.test_labels) = dataset_tuple
-
-            self.data_loader = iter(
-                get_mnist_batch_alter(
-                    self.train_images,
-                    self.train_labels,
-                    self.test_images,
-                    self.test_labels,
-                    alter=[0.0],
-                    batch_size=hparams["batch_size"],
-                    resize=hparams["resize_to_small"],
-                    filter=hparams["filter"]
+            if hparams["continuation_config"] == 'data':
+                # data continuation
+                self.data_loader = iter(
+                    get_mnist_batch_alter(
+                        self.train_images,
+                        self.train_labels,
+                        self.test_images,
+                        self.test_labels,
+                        alter=self._bparam,
+                        batch_size=hparams["batch_size"],
+                        resize=hparams["resize_to_small"],
+                        filter=hparams["filter"]
+                    )
                 )
-            )
+            else:
+                # model continuation
+                self.data_loader = iter(
+                    get_preload_mnist_data(self.train_images,
+                                           self.train_labels,
+                                           self.test_images,
+                                           self.test_labels,
+                                           batch_size=hparams["batch_size"],
+                                           resize=hparams["resize_to_small"],
+                                           filter=hparams["filter"])
+                )
+
             self.num_batches = meta_mnist(hparams["batch_size"], hparams["filter"])["num_batches"]
         else:
             self.data_loader = None
@@ -58,22 +71,10 @@ class UnconstrainedCorrector(Corrector):
         Returns:
           (state: problem parameters, bparam: continuation parameter) Tuple
         """
-        self._assign_states()
+
         quality = 1.0
         ma_loss = []
         stop = False
-        self.data_loader = iter(
-            get_mnist_batch_alter(
-                self.train_images,
-                self.train_labels,
-                self.test_images,
-                self.test_labels,
-                alter=self._bparam,
-                batch_size=self.hparams["batch_size"],
-                resize=self.hparams["resize_to_small"],
-                filter=self.hparams["filter"]
-            )
-        )
         print("learn_rate", self.opt.lr)
         for k in range(self.warmup_period):
             for b_j in range(self.num_batches):
@@ -111,10 +112,6 @@ class UnconstrainedCorrector(Corrector):
                 print("breaking")
                 break
 
-
-        # _, _, test_images, test_labels = mnist(permute_train=False,
-        #                                        resize=self.hparams["resize_to_small"],
-        #                                        filter=self.hparams['filter'])
         val_loss = self.value_fn(self._state, self._bparam, (self.test_images, self.test_labels))
         val_acc = self.accuracy_fn(self._state, self._bparam, (self.test_images, self.test_labels))
         return self._state, self._bparam, quality, value, val_loss, val_acc

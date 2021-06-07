@@ -26,6 +26,15 @@ class ContinuationCreator:
     def get_continuation_method(self) -> Continuation:
         """Creates the continuation object based on user arguments.
 
+        options-
+        natural: monotonic update of continuation parameter, followed by unconstrained solver
+        secant: approximates tangent of the solution path to update both state and continuation parameter,
+                followed by unconstrained solver
+        parc: To be deprecated (TODO)
+        parc-perturb: secant predictor, Langrange min-max updates for corrector with orthogonal constraint
+        parc-fix-perturb: secant predictor, Langrange multiplier is fixed (hyperparamter)
+                          updates for corrector with orthogonal constraint
+
         Returns:
             object: Continuation
         Raises:
@@ -52,6 +61,7 @@ class ContinuationCreator:
                 bparam_0,
                 counter=0,
                 objective=self.problem.objective,
+                accuracy_fn=self.problem.accuracy_fn,
                 hparams=self.hparams,
             )
         elif self.hparams["meta"]["method"] == "parc":

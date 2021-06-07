@@ -183,6 +183,32 @@ def get_mnist_data(batch_size, resize, filter=False):
             batch_idx = perm[i * batch_size : (i + 1) * batch_size]
             yield train_images[batch_idx], train_labels[batch_idx]
 
+
+def get_preload_mnist_data(train_images, train_labels, test_images, test_labels, batch_size, resize, filter=False):
+    if resize:
+        train_images = img_resize(train_images)
+        #test_images = img_resize(test_images)
+    train_images = _partial_flatten(train_images) / np.float32(255.0)
+    #test_images = _partial_flatten(test_images) / np.float32(255.0)
+    if filter:
+        train_filter = np.where(train_labels == 1)
+        train_images = train_images[train_filter]
+        train_labels = train_labels[train_filter]
+    train_labels = _one_hot(train_labels, 10)
+    #test_labels = _one_hot(test_labels, 10)
+    train_images = center_data(train_images)
+    total_data_len = train_images.shape[0]
+    num_complete_batches, leftover = divmod(total_data_len, batch_size)
+    num_batches = num_complete_batches + bool(leftover)
+
+    rng = npr.RandomState(0)
+    while True:
+        perm = rng.permutation(total_data_len)
+        for i in range(num_batches):
+            batch_idx = perm[i * batch_size : (i + 1) * batch_size]
+            yield train_images[batch_idx], train_labels[batch_idx]
+
+
 def mnist_preprocess_cont(resize, filter, center=True):
     train_images, train_labels, test_images, test_labels = mnist(
         permute_train=False, resize=resize, filter=filter)
