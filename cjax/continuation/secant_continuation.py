@@ -2,6 +2,8 @@ from cjax.continuation.base_continuation import Continuation
 from cjax.continuation.states.state_variables import StateVariable, StateWriter
 from cjax.optimizer.optimizer import OptimizerCreator
 from cjax.continuation.methods.predictor.arc_secant_predictor import SecantPredictor
+from cjax.utils.data_img_gamma import mnist_gamma
+from cjax.utils.datasets import mnist, get_mnist_data, meta_mnist
 from cjax.continuation.methods.corrector.unconstrained_corrector import (
     UnconstrainedCorrector,
 )
@@ -19,12 +21,13 @@ class SecantContinuation(Continuation):
 
     Composed of natural predictor and unconstrained corrector"""
 
-    def __init__(self, state, bparam, state_0, bparam_0, counter, objective, hparams):
+    def __init__(self, state, bparam, state_0, bparam_0, counter, objective, accuracy_fn, hparams):
         self._state_wrap = StateVariable(state, counter)
         self._bparam_wrap = StateVariable(bparam, counter)
         self._prev_state = state_0
         self._prev_bparam = bparam_0
         self.objective = objective
+        self.accuracy_fn = accuracy_fn
         self.value_func = jit(self.objective)
         self._value_wrap = StateVariable(0.005, counter)
         self._quality_wrap = StateVariable(0.005, counter)
@@ -33,6 +36,15 @@ class SecantContinuation(Continuation):
         self.opt = OptimizerCreator(
             opt_string=hparams["meta"]["optimizer"], learning_rate=hparams["natural_lr"]
         ).get_optimizer()
+        if hparams["meta"]["dataset"] == "mnist":
+            if hparams["continuation_config"] == 'data':
+                self.dataset_tuple = mnist_gamma(
+                    resize=hparams["resize_to_small"],
+                    filter=hparams["filter"])
+            else:
+                self.dataset_tuple = mnist(
+                    resize=hparams["resize_to_small"],
+                    filter=hparams["filter"])
         self.continuation_steps = hparams["continuation_steps"]
 
         self.output_file = hparams["meta"]["output_dir"]
@@ -64,7 +76,9 @@ class SecantContinuation(Continuation):
                     concat_states=concat_states,
                     grad_fn=self.grad_fn,
                     value_fn=self.value_func,
+                    accuracy_fn=self.accuracy_fn,
                     hparams=self.hparams,
+                    dataset_tuple=self.dataset_tuple
                 )
                 state, bparam, quality, value, val_loss = corrector.correction_step()
                 self._state_wrap.state = state
@@ -107,16 +121,19 @@ class SecantContinuation(Continuation):
             concat_states = [predictor.state, predictor.bparam]
             del predictor
             gc.collect()
+
             corrector = UnconstrainedCorrector(
                 objective=self.objective,
                 concat_states=concat_states,
                 grad_fn=self.grad_fn,
                 value_fn=self.value_func,
+                accuracy_fn=self.accuracy_fn,
                 hparams=self.hparams,
+                dataset_tuple=self.dataset_tuple
             )
-            state, bparam, quality, value, val_loss = corrector.correction_step()
+            state, bparam, quality, value, val_loss, val_acc = corrector.correction_step()
 
-            corrector_omega = 0.005
+            corrector_omega = 0.005 # why fixed check TODO
             self._prev_delta_s = self._delta_s
             self._delta_s = corrector_omega * self._delta_s
             self._delta_s = min(self._delta_s, self.hparams["max_arc_len"])

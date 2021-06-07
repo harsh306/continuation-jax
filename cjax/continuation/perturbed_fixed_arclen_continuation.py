@@ -8,7 +8,7 @@ from cjax.continuation.methods.predictor.arc_secant_predictor import SecantPredi
 from cjax.continuation.methods.corrector.perturb_parc_evolve_data import (
     PerturbedFixedCorrecter,
 )
-from cjax.continuation.methods.corrector.unconstrained_corrector_data import (
+from cjax.continuation.methods.corrector.unconstrained_corrector import (
     UnconstrainedCorrector,
 )
 import jax.numpy as np
