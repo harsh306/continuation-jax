@@ -1,9 +1,7 @@
-from cjax.continuation.arc_len_continuation import (
-    PseudoArcLenContinuation,
-    Continuation,
-)
+from cjax.continuation.arc_len_continuation import Continuation
 from cjax.continuation.states.state_variables import StateWriter
 from cjax.utils.data_img_gamma import mnist_gamma
+from cjax.utils.datasets import mnist
 from cjax.continuation.methods.predictor.arc_secant_predictor import SecantPredictor
 from cjax.continuation.methods.corrector.perturb_parc_evolve_data import (
     PerturbedFixedCorrecter,
@@ -15,7 +13,6 @@ import jax.numpy as np
 from jax.tree_util import *
 import copy
 from cjax.utils.profiler import profile
-import gc
 from jax.experimental.optimizers import l2_norm
 from cjax.continuation.states.state_variables import StateVariable, StateWriter
 from jax import jit, grad
@@ -60,9 +57,14 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
 
         self.hparams = hparams
         if hparams["meta"]["dataset"] == "mnist":
-            self.dataset_tuple = mnist_gamma(
-                resize=hparams["resize_to_small"],
-                filter=hparams["filter"])
+            if hparams["continuation_config"] == 'data':
+                self.dataset_tuple = mnist_gamma(
+                    resize=hparams["resize_to_small"],
+                    filter=hparams["filter"])
+            else:
+                self.dataset_tuple = mnist(
+                    resize=hparams["resize_to_small"],
+                    filter=hparams["filter"])
 
         self._value_wrap = StateVariable(
             0.06, counter

@@ -14,9 +14,8 @@ import numpy.random as npr
 from cjax.utils.evolve_utils import *
 import numpy as onp
 from examples.torch_data import get_data
-#from cjax.utils.datasets import get_mnist_data, meta_mnist, mnist, get_mnist_batch_alter, mnist_preprocess_cont
-from cjax.utils.data_img_gamma import get_mnist_batch_alter, mnist_gamma
-from cjax.utils.datasets import meta_mnist
+from cjax.utils.datasets import get_preload_mnist_data, meta_mnist
+from cjax.utils.data_img_gamma import get_mnist_batch_alter
 
 
 class PerturbedFixedCorrecter(Corrector):
@@ -71,20 +70,34 @@ class PerturbedFixedCorrecter(Corrector):
             (self.train_images, self.train_labels,
              self.test_images, self.test_labels) = dataset_tuple
 
-            self.data_loader = iter(
-                get_mnist_batch_alter(
-                    self.train_images,
-                    self.train_labels,
-                    self.test_images,
-                    self.test_labels,
-                    alter=[0.0],
-                    batch_size=hparams["batch_size"],
-                    resize=hparams["resize_to_small"],
-                    filter=hparams["filter"]
+            if hparams["continuation_config"] == 'data':
+                # data continuation
+                self.data_loader = iter(
+                    get_mnist_batch_alter(
+                        self.train_images,
+                        self.train_labels,
+                        self.test_images,
+                        self.test_labels,
+                        alter=self._bparam,
+                        batch_size=hparams["batch_size"],
+                        resize=hparams["resize_to_small"],
+                        filter=hparams["filter"]
+                    )
                 )
-            )
+            else:
+                # model continuation
+                self.data_loader = iter(
+                    get_preload_mnist_data(self.train_images,
+                                           self.train_labels,
+                                           self.test_images,
+                                           self.test_labels,
+                                           batch_size=hparams["batch_size"],
+                                           resize=hparams["resize_to_small"],
+                                           filter=hparams["filter"])
+                )
             self.num_batches = meta_mnist(hparams["batch_size"], hparams["filter"])["num_batches"]
         else:
+            self.data_loader = None
             self.num_batches = 1
 
     def _assign_states(self):
@@ -195,21 +208,26 @@ class PerturbedFixedCorrecter(Corrector):
 
             ants_state[i_n] = self.state_stack["state"]
             ants_bparam[i_n] = self.state_stack["bparam"]
-
-            if self.hparams["meta"]["dataset"] == "mnist":  # TODO: make it generic
-                self.data_loader = iter(get_mnist_batch_alter(
-                    self.train_images,
-                    self.train_labels,
-                    self.test_images,
-                    self.test_labels,
-                    alter=self._bparam,
-                    batch_size=self.hparams["batch_size"],
-                    resize=self.hparams["resize_to_small"],
-                    filter=self.hparams["filter"]
-                ))
-                batch_data = next(self.data_loader)
+            if self.hparams["continuation_config"]=="data":
+                if self.hparams["meta"]["dataset"] == "mnist":  # TODO: make it generic
+                    self.data_loader = iter(get_mnist_batch_alter(
+                        self.train_images,
+                        self.train_labels,
+                        self.test_images,
+                        self.test_labels,
+                        alter = self._bparam,
+                        batch_size=self.hparams["batch_size"],
+                        resize=self.hparams["resize_to_small"],
+                        filter=self.hparams["filter"]
+                    ))
+                    batch_data = next(self.data_loader)
+                else:
+                    batch_data = None
             else:
-                batch_data = None
+                if self.hparams["meta"]["dataset"] == "mnist":
+                    batch_data = next(self.data_loader)
+                else:
+                    batch_data = None
 
             D_values = []
             print(f"num_batches", self.num_batches)
