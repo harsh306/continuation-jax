@@ -15,7 +15,7 @@ the critical points or fixed points and dumps them to  output file provided in h
 
 """
 from cjax.continuation.creator.continuation_creator import ContinuationCreator
-from examples.toy.vectror_pitchfork import SigmoidFold, PitchForkProblem
+from examples.toy.vectror_pitchfork import PitchForkProblem
 from cjax.utils.abstract_problem import ProblemWraper
 import json
 from jax.config import config
