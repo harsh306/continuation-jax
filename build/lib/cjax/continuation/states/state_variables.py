@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Any
 import jsonlines
 import json
 import jax.numpy as np
@@ -9,7 +9,7 @@ import glob, os
 class StateVariable:
     """To track the state of problem"""
 
-    def __init__(self, state: list, counter: int):
+    def __init__(self, state: Any, counter: int):
         self._state = state
         self._counter = counter
 
@@ -49,14 +49,14 @@ class StateWriter:
         self.file_name = file_name
         self._clear()
         self.writer = jsonlines.Writer(
-            open(file_name, mode="a", encoding="utf-8"), dumps=NumpyEncoder().encode
+            fp=open(file_name, mode="a", encoding="utf-8"), dumps=NumpyEncoder().encode, flush=False
         )
 
     def _clear(self):
         try:
             for f in glob.glob(self.file_name):
+                print(f"Clearing previous runs of {f}")
                 os.remove(f)
-            print(f"Clearing previous runs of {self.file_name}")
         except Exception as e:
             print(f"No previos runs. {e}")
 

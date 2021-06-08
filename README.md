@@ -9,6 +9,7 @@ Tags: optimization, deep-learning, homotopy, bifurcation-analysis, continuation
 
 
 #### Install using pip:
+Package: https://pypi.org/project/continuation-jax/ 
 ```
 pip install continuation-jax
 ```
