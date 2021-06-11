@@ -2,7 +2,7 @@
   "meta": {
     "name": "classifier-model-natural",
     "description": "numerical continuation examples for activation function on AE with PCA initialization",
-    "method": "standard-cheat",
+    "method": "natural",
     "optimizer": "adam",
     "ascent_optimizer": "gradient-ascent",
     "dataset": "mnist",

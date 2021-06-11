@@ -17,13 +17,23 @@ class ContinuationCreator:
     TODO: Use **kwargs to reduce the size of the constructors.
     """
 
-    def __init__(self, problem: ProblemWraper, hparams: Dict, key=0):
+    def __init__(self, problem: ProblemWraper, hparams: Dict, key=0, mlflow=None):
         self.problem = problem
         self.hparams = hparams
         self.key = key
+        self.mlflow = mlflow
 
     def get_continuation_method(self) -> Continuation:
         """Creates the continuation object based on user arguments.
+
+        options-
+        natural: monotonic update of continuation parameter, followed by unconstrained solver
+        secant: approximates tangent of the solution path to update both state and continuation parameter,
+                followed by unconstrained solver
+        parc: To be deprecated (TODO)
+        parc-perturb: secant predictor, Langrange min-max updates for corrector with orthogonal constraint
+        parc-fix-perturb: secant predictor, Langrange multiplier is fixed (hyperparamter)
+                          updates for corrector with orthogonal constraint
 
         Returns:
             object: Continuation
@@ -37,6 +47,7 @@ class ContinuationCreator:
                 bparam,
                 counter=0,
                 objective=self.problem.objective,
+                accuracy_fn=self.problem.accuracy_fn,
                 hparams=self.hparams,
             )
         elif self.hparams["meta"]["method"] == "secant":
@@ -50,6 +61,7 @@ class ContinuationCreator:
                 bparam_0,
                 counter=0,
                 objective=self.problem.objective,
+                accuracy_fn=self.problem.accuracy_fn,
                 hparams=self.hparams,
             )
         elif self.hparams["meta"]["method"] == "parc":
@@ -68,7 +80,10 @@ class ContinuationCreator:
             )
         elif self.hparams["meta"]["method"] == "parc-perturb":
             states, bparams = self.problem.initial_values()
-            state, bparam = states[1], bparams[1] # TODO: remove this hard-coding, basically use the previous two solutions.
+            state, bparam = (
+                states[1],
+                bparams[1],
+            )  # TODO: remove this hard-coding, basically use the previous two solutions.
             state_0, bparam_0 = states[0], bparams[0]
             return PerturbedPseudoArcLenContinuation(
                 state,
@@ -93,6 +108,7 @@ class ContinuationCreator:
                 counter=0,
                 objective=self.problem.objective,
                 dual_objective=self.problem.dual_objective,
+                accuracy_fn = self.problem.accuracy_fn,
                 hparams=self.hparams,
                 key_state=self.key,
             )

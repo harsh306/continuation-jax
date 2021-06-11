@@ -20,7 +20,6 @@ import json
 from cjax.utils.custom_nn import constant_2d, HomotopyDense, v_2d
 from cjax.utils.datasets import mnist, get_mnist_data, meta_mnist
 import pickle
-from examples.torch_data import get_data
 
 npr.seed(7)
 orth_init_cont = False

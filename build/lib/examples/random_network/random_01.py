@@ -1,4 +1,4 @@
-from cjax.utils import generate_data_01
+from cjax.utils.random_network_data_pair import generate_data_01
 from cjax.utils.abstract_problem import AbstractProblem
 from jax.experimental.optimizers import l2_norm
 from jax.tree_util import tree_map

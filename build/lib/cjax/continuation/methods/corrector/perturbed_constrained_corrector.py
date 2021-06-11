@@ -28,7 +28,7 @@ class PerturbedCorrecter(ConstrainedCorrector):
         hparams,
         pred_state,
         pred_prev_state,
-        counter
+        counter,
     ):
         super().__init__(
             optimizer,
@@ -61,14 +61,14 @@ class PerturbedCorrecter(ConstrainedCorrector):
     @staticmethod
     @jit
     def _perform_perturb_by_projection(
-            _state_secant_vector,
-            _state_secant_c2,
-            key,
-            pred_prev_state,
-            _state,
-            _bparam,
-            counter,
-            sphere_radius,
+        _state_secant_vector,
+        _state_secant_c2,
+        key,
+        pred_prev_state,
+        _state,
+        _bparam,
+        counter,
+        sphere_radius,
     ):
         ### Secant normal
         n, sample_unravel = pytree_to_vec(
@@ -81,7 +81,7 @@ class PerturbedCorrecter(ConstrainedCorrector):
             pytree_zeros_like(n),
         )
 
-        tmp, _ = pytree_to_vec([_state_secant_c2['state'], _state_secant_c2['bparam']])
+        tmp, _ = pytree_to_vec([_state_secant_c2["state"], _state_secant_c2["bparam"]])
 
         # select a point on the secant normal
         u_0, _ = pytree_to_vec(pred_prev_state)
@@ -105,7 +105,10 @@ class PerturbedCorrecter(ConstrainedCorrector):
     def _evaluate_perturb(self):
         """Evaluate weather the perturbed vector is orthogonal to secant vector"""
 
-        dot = pytree_dot(pytree_normalized(self._parc_vec), pytree_normalized(self._state_secant_vector))
+        dot = pytree_dot(
+            pytree_normalized(self._parc_vec),
+            pytree_normalized(self._state_secant_vector),
+        )
         if math.isclose(dot, 0.0, abs_tol=0.25):
             print(f"Perturb was near arc-plane. {dot}")
             self._state = self.state_stack["state"]
@@ -130,7 +133,7 @@ class PerturbedCorrecter(ConstrainedCorrector):
             self.sphere_radius,
         )
         self._evaluate_perturb()  # does every time
-        quality =0.0
+        quality = 0.0
         for k in range(self.warmup_period):
             grads = self.compute_grad_fn(self._state, self._bparam)
             self._state = self.opt.update_params(self._state, grads[0])
@@ -157,15 +160,15 @@ class PerturbedCorrecter(ConstrainedCorrector):
                     self.delta_s,
                 )
 
-                if self.hparams['adaptive']:
-                    self.opt.lr = self.exp_decay(j, self.hparams['natural_lr'])
+                if self.hparams["adaptive"]:
+                    self.opt.lr = self.exp_decay(j, self.hparams["natural_lr"])
                     quality = l2_norm(state_grads) + l2_norm(bparam_grads)
                     # if quality > self.hparams['quality_thresh']:
                     #     self.hparams['natural_lr'] = int(self.hparams['natural_lr']) / 8
-                        # print('grads', bparam_grads, state_grads)
-                        # state_grads = clip_grads(state_grads, 0.01)
-                        # bparam_grads = clip_grads(bparam_grads, 0.01)
-                        # print('clipped grads', bparam_grads, state_grads)
+                    # print('grads', bparam_grads, state_grads)
+                    # state_grads = clip_grads(state_grads, 0.01)
+                    # bparam_grads = clip_grads(bparam_grads, 0.01)
+                    # print('clipped grads', bparam_grads, state_grads)
 
                 self._bparam = self.opt.update_params(self._bparam, bparam_grads, j)
                 self._state = self.opt.update_params(self._state, state_grads, j)
