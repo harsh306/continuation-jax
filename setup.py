@@ -9,7 +9,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="continuation_jax",  # Replace with your own username
-    version="0.0.4",
+    version="0.0.6",
     author="Harsh Nilesh Pathak",
     author_email="harshnpathak@gmail.com",
     description="Continuation Methods for Deep Neural Networks.",

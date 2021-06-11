@@ -2,14 +2,15 @@
   "meta": {
     "name": "classifier-model-natural",
     "description": "numerical continuation examples for activation function on AE with PCA initialization",
-    "method": "natural",
+    "method": "parc-fix-perturb",
     "optimizer": "adam",
     "ascent_optimizer": "gradient-ascent",
     "dataset": "mnist",
     "output_dir": "output/",
     "mlflow_uri": "http://127.0.0.1:5000"
   },
-  "continuation_steps": 300,
+  "continuation_steps": 1,
+  "continuation_config": "model",
   "n_perturbs": 1,
   "delta_s": 0.05,
   "max_arc_len": 0.02,
@@ -49,5 +50,5 @@
   "natural_start": true,
   "double_natural_start": true,
   "local_test_measure": "ma_loss",
-  "loss_tol": 2e-7
+  "loss_tol": 2e-4
 }

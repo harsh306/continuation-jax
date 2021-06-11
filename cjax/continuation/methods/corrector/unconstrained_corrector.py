@@ -4,7 +4,7 @@ from jax import grad, jit
 from jax.experimental.optimizers import l2_norm
 from cjax.continuation.methods.corrector.base_corrector import Corrector
 from cjax.optimizer.optimizer import OptimizerCreator
-from cjax.utils.datasets import meta_mnist, get_preload_mnist_data, mnist
+from cjax.utils.datasets import meta_mnist, get_preload_mnist_data, mnist, get_mnist_data
 from cjax.utils.data_img_gamma import get_mnist_batch_alter, mnist_gamma
 from cjax.utils.evolve_utils import running_mean, exp_decay
 import math
@@ -47,13 +47,18 @@ class UnconstrainedCorrector(Corrector):
             else:
                 # model continuation
                 self.data_loader = iter(
-                    get_preload_mnist_data(self.train_images,
-                                           self.train_labels,
-                                           self.test_images,
-                                           self.test_labels,
-                                           batch_size=hparams["batch_size"],
-                                           resize=hparams["resize_to_small"],
-                                           filter=hparams["filter"])
+                    get_mnist_data(batch_size=hparams["batch_size"],
+                                       resize=hparams["resize_to_small"],
+                                       filter=hparams["filter"])
+
+                    # get_preload_mnist_data(self.train_images, ## TODO: better way to prefetch mnist
+                    #                        self.train_labels,
+                    #                        self.test_images,
+                    #                        self.test_labels,
+                    #                          batch_size = hparams["batch_size"],
+                    #                          resize = hparams["resize_to_small"],
+                    #                         filter = hparams["filter"])
+
                 )
 
             self.num_batches = meta_mnist(hparams["batch_size"], hparams["filter"])["num_batches"]

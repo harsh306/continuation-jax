@@ -14,7 +14,7 @@ import numpy.random as npr
 from cjax.utils.evolve_utils import *
 import numpy as onp
 from examples.torch_data import get_data
-from cjax.utils.datasets import get_preload_mnist_data, meta_mnist
+from cjax.utils.datasets import get_preload_mnist_data, meta_mnist, get_mnist_data
 from cjax.utils.data_img_gamma import get_mnist_batch_alter
 
 
@@ -87,13 +87,9 @@ class PerturbedFixedCorrecter(Corrector):
             else:
                 # model continuation
                 self.data_loader = iter(
-                    get_preload_mnist_data(self.train_images,
-                                           self.train_labels,
-                                           self.test_images,
-                                           self.test_labels,
-                                           batch_size=hparams["batch_size"],
-                                           resize=hparams["resize_to_small"],
-                                           filter=hparams["filter"])
+                get_mnist_data(batch_size=hparams["batch_size"],
+                                       resize=hparams["resize_to_small"],
+                                       filter=hparams["filter"])
                 )
             self.num_batches = meta_mnist(hparams["batch_size"], hparams["filter"])["num_batches"]
         else:
