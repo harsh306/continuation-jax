@@ -23,7 +23,7 @@
   "omega_d": 0.5,
   "omega_m": 1,
   "adaptive": true,
-  "batch_size": 30000,
+  "batch_size": 3000,
   "quality_thresh": 0.25,
   "max_clip_grad": 0.02,
   "net_spacing_param": 0.007,

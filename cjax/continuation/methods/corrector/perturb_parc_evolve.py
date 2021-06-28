@@ -13,7 +13,7 @@ from jax.experimental.optimizers import clip_grads
 import numpy.random as npr
 from cjax.utils.evolve_utils import *
 import numpy as onp
-from examples.torch_data import get_data
+#from examples.torch_data import get_data
 from cjax.utils.datasets import get_preload_mnist_data, meta_mnist, get_mnist_data
 from cjax.utils.data_img_gamma import get_mnist_batch_alter
 
@@ -111,6 +111,15 @@ class PerturbedFixedCorrecter(Corrector):
 
     @staticmethod
     @jit
+    def normalize_secant(_state_secant_vector):
+        n, _ = pytree_to_vec(
+            [_state_secant_vector["state"], _state_secant_vector["bparam"]]
+        )
+        del _
+        return n
+
+    @staticmethod
+    @jit
     def _perform_perturb_by_projection(
         _state_secant_vector,
         _state_secant_c2,
@@ -126,11 +135,6 @@ class PerturbedFixedCorrecter(Corrector):
             [_state_secant_vector["state"], _state_secant_vector["bparam"]]
         )
         n = pytree_normalized(n)
-        ### sample a random poin in Rn
-        # u = tree_map(
-        #     lambda a: a + random.uniform(key, a.shape),
-        #     pytree_zeros_like(n),
-        # )
         u = tree_map(
             lambda a: a + random.normal(key, a.shape),
             pytree_ones_like(n),
@@ -138,24 +142,19 @@ class PerturbedFixedCorrecter(Corrector):
         tmp, _ = pytree_to_vec([_state_secant_c2["state"], _state_secant_c2["bparam"]])
 
         # select a point on the secant normal
-        u_0, _ = pytree_to_vec(pred_prev_state)
+        u_0, _ = pytree_to_vec(pred_prev_state) # fixed
         # compute projection
         proj_of_u_on_n = projection_affine(len(n), u, n, u_0)
 
         point_on_plane = u + pytree_sub(tmp, proj_of_u_on_n)  ## state= pred_state + n
-        #noise = random.uniform(key, [1], minval=-0.003, maxval=0.03)
-        inv_vec = np.array([-1.0, 1.0])
-        parc = pytree_element_mul(
-            pytree_normalized(pytree_sub(point_on_plane, tmp)),
-            inv_vec[(counter % 2)],
-        )
-        point_on_plane_2 = tmp + sphere_radius * parc
+        # inv_vec = np.array([-1.0, 1.0])
+        # parc = pytree_element_mul(
+        #     pytree_normalized(pytree_sub(point_on_plane, tmp)),
+        #     inv_vec[(counter % 2)],
+        # )
+        point_on_plane_2 = tmp + sphere_radius * point_on_plane
         new_sample = sample_unravel(point_on_plane_2)
-        state_stack = {}
-        state_stack.update({"state": new_sample[0]})
-        state_stack.update({"bparam": new_sample[1]})
-        _parc_vec = pytree_sub(state_stack, _state_secant_c2)
-        return _parc_vec, state_stack
+        return new_sample
 
     def _evaluate_perturb(self):
         """Evaluate weather the perturbed vector is orthogonal to secant vector"""
@@ -188,8 +187,8 @@ class PerturbedFixedCorrecter(Corrector):
             _, key = random.split(
                 random.PRNGKey(self.key_state + i_n + npr.randint(1, (i_n + 1) * 10))
             )
-            del _
-            self._parc_vec, self.state_stack = self._perform_perturb_by_projection(
+
+            self.state_stack = self._perform_perturb_by_projection(
                 self._state_secant_vector,
                 self._state_secant_c2,
                 key,
@@ -199,11 +198,11 @@ class PerturbedFixedCorrecter(Corrector):
                 i_n,
                 self.sphere_radius,
             )
-            if self.hparams["_evaluate_perturb"]:
-                self._evaluate_perturb()  # does every time
+            # if self.hparams["_evaluate_perturb"]:
+            #     self._evaluate_perturb()  # does every time
 
-            ants_state[i_n] = self.state_stack["state"]
-            ants_bparam[i_n] = self.state_stack["bparam"]
+            ants_state[i_n] = self.state_stack[0] #self.state_stack["state"]
+            ants_bparam[i_n] = self.state_stack[1] #self.state_stack["bparam"]
 
             if self.hparams["continuation_config"]=="data":
                 if self.hparams["meta"]["dataset"] == "mnist":  # TODO: make it generic

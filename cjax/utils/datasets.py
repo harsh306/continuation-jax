@@ -108,8 +108,18 @@ def img_resize(train_images):
     train_data = []
     for img in train_images:
         resized_img = cv2.resize(img, (6, 6))
+        resized_img = np.expand_dims(resized_img, axis=-1)
+        resized_img = np.moveaxis(resized_img, -1, 0)
         train_data.append(resized_img)
-    return np.asarray(train_data)
+    return np.asarray(train_data).astype(np.float32)
+
+def img_expand_dim(train_images):
+    train_data = []
+    for img in train_images:
+        resized_img = np.expand_dims(img, axis=-1)
+        resized_img = np.moveaxis(resized_img, -1, 0)
+        train_data.append(resized_img)
+    return np.asarray(train_data).astype(np.float32)
 
 def img_resize_noise(train_images):
     train_data = []
@@ -136,8 +146,12 @@ def mnist(permute_train=False, resize=False, filter=False):
     if resize:
         train_images = img_resize(train_images)
         test_images = img_resize(test_images)
-    train_images = _partial_flatten(train_images) / np.float32(255.0)
-    test_images = _partial_flatten(test_images) / np.float32(255.0)
+    else:
+        train_images = img_expand_dim(train_images)
+        test_images = img_expand_dim(test_images)
+    train_images =  train_images / np.float32(255.0)
+    #train_images = _partial_flatten(train_images) / np.float32(255.0)
+    #test_images = _partial_flatten(test_images) / np.float32(255.0)
     train_labels = _one_hot(train_labels, 10)
     test_labels = _one_hot(test_labels, 10)
     if permute_train:
@@ -163,7 +177,11 @@ def get_mnist_data(batch_size, resize, filter=False):
     if resize:
         train_images = img_resize(train_images)
         #test_images = img_resize(test_images)
-    train_images = _partial_flatten(train_images) / np.float32(255.0)
+    else:
+        train_images = img_expand_dim(train_images)
+        #test_images = img_expand_dim(test_images)
+    train_images = train_images / np.float32(255.0)
+    #train_images = _partial_flatten(train_images) / np.float32(255.0)
     #test_images = _partial_flatten(test_images) / np.float32(255.0)
     if filter:
         train_filter = np.where(train_labels == 1)
@@ -171,7 +189,7 @@ def get_mnist_data(batch_size, resize, filter=False):
         train_labels = train_labels[train_filter]
     train_labels = _one_hot(train_labels, 10)
     #test_labels = _one_hot(test_labels, 10)
-    train_images = center_data(train_images)
+    #train_images = center_data(train_images)
     total_data_len = train_images.shape[0]
     num_complete_batches, leftover = divmod(total_data_len, batch_size)
     num_batches = num_complete_batches + bool(leftover)
@@ -246,7 +264,7 @@ if __name__ == "__main__":
         #print(src)
         #print(src/np.float32(255.0))
         #print(src.shape)
-        dst = adjust_gamma(src, 0.5)
+        #dst = adjust_gamma(src, 0.5)
         #dst = cv2.medianBlur(src, 3)
         #src =cv2.resize(src, (6,6))
         #dst = cv2.resize(dst, (6, 6))

@@ -51,6 +51,7 @@ class ModelContClassifier(AbstractProblem):
     def objective(params, bparam, batch) -> float:
         x, targets = batch
         x = np.reshape(x, (x.shape[0], -1))
+        print(x.shape)
         logits = predict_fun(params, x)
         logits = logits - logsumexp(logits, axis=1, keepdims=True)
         loss = -np.mean(np.sum(logits * targets, axis=1))

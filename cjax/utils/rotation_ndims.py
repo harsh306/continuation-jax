@@ -5,7 +5,10 @@ author: Paul Bruillard, harsh
 import jax.numpy as jnp
 from cjax.utils.math_trees import *
 from typing import Any
-
+from jax import jit
+from jax.ops import index, index_add, index_update
+from datetime import datetime
+from functools import partial
 
 def get_rotation_pytree(src: Any, dst: Any) -> Any:
     """
@@ -108,7 +111,7 @@ def get_rotation_array(src: Any, dst: Any) -> Any:
         raise ValueError("Rotation matrix did not work")
     return R
 
-
+@partial(jit, static_argnums=(0))
 def projection_affine(n_dim, u, n, u_0):
     """
 
@@ -123,13 +126,8 @@ def projection_affine(n_dim, u, n, u_0):
     """
     n_norm = l2_norm(n)
     I = jnp.eye(n_dim)
-
-    p2 = [0 * k for k in range(n_dim)]
-    for k in range(n_dim):
-        p2[k] = (jnp.dot(n, I[k]) / n_norm ** 2) * n
-
-    p2 = jnp.asarray([p2[i] for i in range(n_dim)])
-    u_0 = u_0.reshape(n_dim, 1)
+    p2 = jnp.dot(I, n)[:, None] / n_norm ** 2 * n
+    u_0 = lax.reshape(u_0, (n_dim, 1))
     I = jnp.eye(n_dim)
     t1 = jnp.block([[I, u_0], [jnp.zeros(shape=(1, n_dim)), 1.0]])
     t2 = jnp.block(
@@ -143,7 +141,7 @@ def projection_affine(n_dim, u, n, u_0):
 
 
 if __name__ == "__main__":
-    n = 5
+    # n = 5
     # key = random.PRNGKey(10)
     # k1, k2 = random.split(key, 2)
     # cjax = random.normal(k1, [n])
@@ -152,10 +150,15 @@ if __name__ == "__main__":
     # transformed_vector = np.dot(R, cjax)
     # print(jnp.dot(transformed_vector, dst))
 
-    # n = 3
-    # cjax= np.array([0.0,0.0,1.0])
-    # dst = np.array([3.0,3.0,3.0])
-    # sample = np.array([1.0,2.0,0.0])
+    n_dim = 1000
+    n = jnp.zeros(n_dim)
+    n = index_update(n, -1, 1)
+    u_0 = 3.0 * jnp.ones(n_dim)
+    u = 2.0 * jnp.ones(n_dim)
+
+    start = datetime.now()
+    projection = projection_affine(n_dim, u, n, u_0)
+    print(f"duration { datetime.now()-start}")
+    print(projection)
     # R = get_rotation_array(cjax, dst)
     # transformed_vector = np.dot(R, sample) + dst
-    # print(transformed_vector)

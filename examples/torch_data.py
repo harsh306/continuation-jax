@@ -14,9 +14,9 @@ import numpy as np
 import jax.numpy as jnp
 import random
 
-import torch
-import torch.utils.data as data
-from torchvision import transforms, datasets
+# import torch
+# import torch.utils.data as data
+#from torchvision import transforms, datasets
 
 # import torch.multiprocessing as multiprocessing
 # multiprocessing.set_start_method('spawn')
