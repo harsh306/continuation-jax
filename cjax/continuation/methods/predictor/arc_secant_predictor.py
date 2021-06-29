@@ -48,11 +48,11 @@ class SecantPredictor(Predictor):
         state_sub = pytree_sub(_state, _prev_state)
         bparam_sub = pytree_sub(_bparam, _prev_bparam)
         secant_direction.update(
-            {"state": pytree_element_mul(state_sub, delta_s / prev_delta_s)}
+            {"state": pytree_element_mul(state_sub, delta_s/l2_norm(state_sub))}
         )
 
         secant_direction.update(
-            {"bparam": pytree_element_mul(bparam_sub, delta_s / prev_delta_s)}
+            {"bparam": pytree_element_mul(bparam_sub, delta_s/prev_delta_s)}
         )
 
         return secant_direction

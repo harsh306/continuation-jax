@@ -286,9 +286,10 @@ class PerturbedFixedCorrecter(Corrector):
                     if self.hparams["guess_ant_steps"] >= (
                         j_epoch + 1
                     ):  # To get around folds slowly
-                        corrector_omega = min(
-                            self.hparams["guess_ant_steps"] / (j_epoch + 1), 1.5
-                        )
+                        corrector_omega = 1.0 + (self.hparams["guess_ant_steps"] / (j_epoch + 1))
+                        # min(
+                        #     self.hparams["guess_ant_steps"] / (j_epoch + 1), 1.5
+                        # )
                     else:
                         corrector_omega = max(
                             self.hparams["guess_ant_steps"] / (j_epoch + 1), 0.05

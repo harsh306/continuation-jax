@@ -9,10 +9,10 @@
     "output_dir": "output/",
     "mlflow_uri": "http://127.0.0.1:5000"
   },
-  "continuation_steps": 300,
-  "hidden_activation": "relu",
-  "init_m": "None",
-  "n_perturbs": 3,
+  "continuation_steps": 100,
+  "hidden_activation": "sigmoid",
+  "init_m": "pca",
+  "n_perturbs": 2,
   "delta_s": 0.05,
   "max_arc_len": 0.02,
   "min_arc_len": 0.008,
@@ -51,5 +51,6 @@
   "natural_start": true,
   "double_natural_start": true,
   "local_test_measure": "ma_loss",
+  "continuation_config": "model",
   "loss_tol": 2e-5
 }
