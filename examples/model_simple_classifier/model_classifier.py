@@ -22,7 +22,7 @@ from cjax.utils.datasets import mnist, get_mnist_data, meta_mnist
 import pickle
 
 npr.seed(7)
-orth_init_cont = False
+orth_init_cont = True
 input_shape = (30000, 36)
 def accuracy(params, bparams, batch):
     inputs, targets = batch
@@ -33,13 +33,13 @@ def accuracy(params, bparams, batch):
 if orth_init_cont:
     init_fun, predict_fun = stax.serial(
         HomotopyDense(out_dim=18, W_init=orthogonal(), b_init=zeros),
-        Dense(out_dim=10, W_init=normal(), b_init=normal())
+        Dense(out_dim=10, W_init=orthogonal(), b_init=zeros), LogSoftmax
     )
     #init_fun, predict_fun = Dense(out_dim=10, W_init=normal(), b_init=normal())
 else:
     # baseline network
     init_fun, predict_fun = stax.serial(
-        Dense(out_dim=18),
+        Dense(out_dim=18), Relu,
         Dense(out_dim=10), LogSoftmax
     )
 
@@ -51,10 +51,10 @@ class ModelContClassifier(AbstractProblem):
     def objective(params, bparam, batch) -> float:
         x, targets = batch
         x = np.reshape(x, (x.shape[0], -1))
-        logits = predict_fun(params, x)
-        logits = logits - logsumexp(logits, axis=1, keepdims=True)
+        logits = predict_fun(params, x, bparam=bparam[0], activation_func=relu)
+        #logits = logits - logsumexp(logits, axis=1, keepdims=True)
         loss = -np.mean(np.sum(logits * targets, axis=1))
-        loss += 5e-6 * (l2_norm(params)) #+ l2_norm(bparam))
+        #loss += 5e-6 * (l2_norm(params)) #+ l2_norm(bparam))
         return loss
 
     @staticmethod
@@ -67,7 +67,7 @@ class ModelContClassifier(AbstractProblem):
 
     def initial_value(self):
         ae_shape, ae_params = init_fun(random.PRNGKey(0), input_shape)
-        bparam = [np.array([0.00], dtype=np.float64)]
+        bparam = [np.array([0.02], dtype=np.float64)]
         return ae_params, bparam
 
     def initial_values(self):
@@ -135,7 +135,7 @@ if __name__ == "__main__":
                     break
 
         train_images, train_labels, test_images, test_labels = mnist(
-            permute_train=False, resize=True, filter=hparams["filter"]
+            permute_train=False, resize=hparams["resize_to_small"], filter=hparams["filter"]
         )
 
         val_loss = problem.objective(ae_params, bparam, (test_images, test_labels))

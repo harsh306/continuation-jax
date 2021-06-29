@@ -255,6 +255,7 @@ class PerturbedPseudoArcLenFixedContinuation(Continuation):
             mlflow.log_metrics({
                 f"train_loss{self.perturb_index}": float(self._value_wrap.state),
                 f"delta_s{self.perturb_index}": float(self._delta_s),
+                f"bparam{self.perturb_index}": float(self._bparam_wrap.state[0]),
                 f"norm grads{self.perturb_index}": float(self._quality_wrap.state),
                 f"val_loss{self.perturb_index}": float(val_loss),
                 f"val_acc{self.perturb_index}": float(val_acc),

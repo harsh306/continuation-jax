@@ -144,6 +144,9 @@ def mnist(permute_train=False, resize=False, filter=False):
         perm = np.random.RandomState(0).permutation(train_images.shape[0])
         train_images = train_images[perm]
         train_labels = train_labels[perm]
+
+    train_images = center_data(train_images)
+    test_images = center_data(test_images)
     return train_images, train_labels, test_images, test_labels
 
 

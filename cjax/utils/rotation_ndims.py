@@ -3,9 +3,10 @@ author: Paul Bruillard, harsh
 """
 
 import jax.numpy as jnp
+from jax import jit
 from cjax.utils.math_trees import *
 from typing import Any
-
+from functools import partial
 
 def get_rotation_pytree(src: Any, dst: Any) -> Any:
     """
@@ -109,27 +110,20 @@ def get_rotation_array(src: Any, dst: Any) -> Any:
     return R
 
 
+@partial(jit, static_argnums=(0))
 def projection_affine(n_dim, u, n, u_0):
     """
-
     Args:
         n_dim: affine transformation space
         u: random point to be projected on n as L
         n: secant normal vector
         u_0: secant starting point
-
     Returns:
-
     """
     n_norm = l2_norm(n)
     I = jnp.eye(n_dim)
-
-    p2 = [0 * k for k in range(n_dim)]
-    for k in range(n_dim):
-        p2[k] = (jnp.dot(n, I[k]) / n_norm ** 2) * n
-
-    p2 = jnp.asarray([p2[i] for i in range(n_dim)])
-    u_0 = u_0.reshape(n_dim, 1)
+    p2 = jnp.dot(I, n)[:, None] / n_norm ** 2 * n
+    u_0 = lax.reshape(u_0, (n_dim, 1))
     I = jnp.eye(n_dim)
     t1 = jnp.block([[I, u_0], [jnp.zeros(shape=(1, n_dim)), 1.0]])
     t2 = jnp.block(
