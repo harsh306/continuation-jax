@@ -49,6 +49,27 @@ class ResNetBlock(nn.Module):
     return self.act(residual + y)
 
 
+class MiniResNetBlock(nn.Module):
+  """ResNet block."""
+  filters: int
+  conv: ModuleDef
+  norm: ModuleDef
+  act: Callable
+  strides: Tuple[int, int] = (1, 1)
+
+  @nn.compact
+  def __call__(self, x):
+    residual = x
+    y = self.conv(self.filters, (3, 3), self.strides)(x)
+    y = self.norm(scale_init=nn.initializers.zeros)(y)
+
+    if residual.shape != y.shape:
+      residual = self.conv(self.filters, (1, 1),
+                           self.strides, name='conv_proj')(residual)
+      residual = self.norm(name='norm_proj')(residual)
+    return self.act(residual + y)
+
+
 class BottleneckResNetBlock(nn.Module):
   """Bottleneck ResNet block."""
   filters: int
@@ -132,5 +153,5 @@ ResNet200 = partial(ResNet, stage_sizes=[3, 24, 36, 3],
 
 
 # Used for testing only.
-_ResNet1 = partial(ResNet, stage_sizes=[1], block_cls=ResNetBlock)
+ResNet1 = partial(ResNet, stage_sizes=[1], block_cls=MiniResNetBlock)
 
