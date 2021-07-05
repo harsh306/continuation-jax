@@ -111,7 +111,8 @@ def img_resize(train_images):
         resized_img = np.expand_dims(resized_img, axis=-1)
         resized_img = np.moveaxis(resized_img, -1, 0)
         train_data.append(resized_img)
-    return np.asarray(train_data).astype(np.float32)
+    train_data = np.asarray(train_data).astype(np.float32)
+    return train_data
 
 def img_expand_dim(train_images):
     train_data = []
@@ -138,7 +139,6 @@ def mnist(permute_train=False, resize=False, filter=False):
         train_filter = np.where(train_labels == 1)
         train_images = train_images[train_filter]
         train_labels = train_labels[train_filter]
-
         test_filter = np.where(test_labels == 1)
         test_images = test_images[test_filter]
         test_labels = test_labels[test_filter]
@@ -151,6 +151,8 @@ def mnist(permute_train=False, resize=False, filter=False):
         test_images = img_expand_dim(test_images)
     train_images =  train_images / np.float32(255.0)
     test_images = test_images / np.float32(255.0)
+    train_images = np.moveaxis(train_images, 1, -1)
+    test_images = np.moveaxis(test_images, 1, -1)
     #train_images = _partial_flatten(train_images) / np.float32(255.0)
     #test_images = _partial_flatten(test_images) / np.float32(255.0)
     train_labels = _one_hot(train_labels, 10)
@@ -189,12 +191,10 @@ def get_mnist_data(batch_size, resize, filter=False):
         train_images = train_images[train_filter]
         train_labels = train_labels[train_filter]
     train_labels = _one_hot(train_labels, 10)
-    #test_labels = _one_hot(test_labels, 10)
-    #train_images = center_data(train_images)
     total_data_len = train_images.shape[0]
     num_complete_batches, leftover = divmod(total_data_len, batch_size)
     num_batches = num_complete_batches + bool(leftover)
-
+    train_images = np.moveaxis(train_images, 1, -1)
     rng = npr.RandomState(0)
     while True:
         perm = rng.permutation(total_data_len)
@@ -258,22 +258,8 @@ def get_mnist_batch_alter(train_images, train_labels, test_images,
 
 
 if __name__ == "__main__":
-    train_images, _, _, _ = mnist_raw()
+    train_images, _ = next(get_mnist_data(32, resize=True, filter=True))
     #train_images = _partial_flatten(train_images) / np.float32(255.0)
-    for src in train_images:
-        #src = train_images[0]#/np.float32(255.0)
-        #print(src)
-        #print(src/np.float32(255.0))
-        #print(src.shape)
-        #dst = adjust_gamma(src, 0.5)
-        #dst = cv2.medianBlur(src, 3)
-        #src =cv2.resize(src, (6,6))
-        #dst = cv2.resize(dst, (6, 6))
-        print(dst.shape)
-    # cv2.imshow("Gaussian Smoothing", np.hstack((src, dst)))
-    # cv2.waitKey(0)  # waits until a key is pressed
-    # cv2.destroyAllWindows()
-    # print(train_images.shape[0])
-    # print(test_images.shape[0])
-    # # z = meta_mnist(5000)
-    # print(meta_mnist(6742, True)["num_batches"])
+    print(train_images.shape)
+    train, _, test, _ = mnist(resize=True, filter=True)
+    print(train.shape, test.shape)

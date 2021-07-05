@@ -1,7 +1,7 @@
 from cjax.continuation._arc_len_continuation import Continuation
 from cjax.continuation.states.state_variables import StateWriter
 from cjax.utils.data_img_gamma import mnist_gamma
-from cjax.utils.datasets import mnist
+from cjax.utils.dataset_conv import mnist
 from cjax.continuation.methods.predictor.arc_secant_predictor import SecantPredictor
 from cjax.continuation.methods.corrector.perturb_parc_evolve import (
     PerturbedFixedCorrecter,

@@ -4,7 +4,7 @@ from jax import grad, jit
 from jax.experimental.optimizers import l2_norm
 from cjax.continuation.methods.corrector.base_corrector import Corrector
 from cjax.optimizer.optimizer import OptimizerCreator
-from cjax.utils.datasets import meta_mnist, get_preload_mnist_data, mnist, get_mnist_data
+from cjax.utils.dataset_conv import meta_mnist, get_preload_mnist_data, mnist, get_mnist_data
 from cjax.utils.data_img_gamma import get_mnist_batch_alter, mnist_gamma
 from cjax.utils.evolve_utils import running_mean, exp_decay
 import math

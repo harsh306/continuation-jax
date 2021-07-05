@@ -48,8 +48,7 @@ class ResNetBlock(nn.Module):
 
     return self.act(residual + y)
 
-
-class MiniResNetBlock(nn.Module):
+class HomotopyResNetBlock(nn.Module):
   """ResNet block."""
   filters: int
   conv: ModuleDef
@@ -58,7 +57,33 @@ class MiniResNetBlock(nn.Module):
   strides: Tuple[int, int] = (1, 1)
 
   @nn.compact
-  def __call__(self, x):
+  def __call__(self, x, alpha):
+    residual = x
+    y = self.conv(self.filters, (3, 3), self.strides)(x)
+    y = self.norm()(y)
+    y = self.act(y)
+    y = self.conv(self.filters, (3, 3))(y)
+    y = self.norm(scale_init=nn.initializers.zeros)(y)
+
+    if residual.shape != y.shape:
+      residual = self.conv(self.filters, (1, 1),
+                           self.strides, name='conv_proj')(residual)
+      residual = self.norm(name='norm_proj')(residual)
+
+    return ((1 - alpha) * self.act(y) + alpha * self.act(residual + y))
+
+
+
+class HomotopyMiniResNetBlock(nn.Module):
+  """ResNet block."""
+  filters: int
+  conv: ModuleDef
+  norm: ModuleDef
+  act: Callable
+  strides: Tuple[int, int] = (1, 1)
+
+  @nn.compact
+  def __call__(self, x, alpha):
     residual = x
     y = self.conv(self.filters, (3, 3), self.strides)(x)
     y = self.norm(scale_init=nn.initializers.zeros)(y)
@@ -67,7 +92,7 @@ class MiniResNetBlock(nn.Module):
       residual = self.conv(self.filters, (1, 1),
                            self.strides, name='conv_proj')(residual)
       residual = self.norm(name='norm_proj')(residual)
-    return self.act(residual + y)
+    return ((1 - alpha) * self.act(y) + alpha * self.act(residual + y))
 
 
 class BottleneckResNetBlock(nn.Module):
@@ -131,7 +156,7 @@ class ResNet(nn.Module):
                            strides=strides,
                            conv=conv,
                            norm=norm,
-                           act=self.act)(x)
+                           act=self.act)(x, bparam)
     x = jnp.mean(x, axis=(1, 2))
     x = nn.Dense(self.num_classes, dtype=self.dtype)(x)
     x = jnp.asarray(x, self.dtype)
@@ -153,5 +178,5 @@ ResNet200 = partial(ResNet, stage_sizes=[3, 24, 36, 3],
 
 
 # Used for testing only.
-ResNet1 = partial(ResNet, stage_sizes=[1], block_cls=MiniResNetBlock)
+ResNet1 = partial(ResNet, stage_sizes=[1], block_cls=HomotopyMiniResNetBlock)
 

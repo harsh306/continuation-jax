@@ -14,7 +14,7 @@ import numpy.random as npr
 from cjax.utils.evolve_utils import *
 import numpy as onp
 #from examples.torch_data import get_data
-from cjax.utils.datasets import get_preload_mnist_data, meta_mnist, get_mnist_data
+from cjax.utils.dataset_conv import get_preload_mnist_data, meta_mnist, get_mnist_data
 from cjax.utils.data_img_gamma import get_mnist_batch_alter
 
 

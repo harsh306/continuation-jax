@@ -12,7 +12,7 @@ from cjax.optimizer.optimizer import OptimizerCreator
 from jax.experimental.optimizers import clip_grads
 import numpy.random as npr
 from examples.torch_data import get_data
-from cjax.utils.datasets import get_mnist_data, meta_mnist  # faster version
+from cjax.utils.dataset_conv import get_mnist_data, meta_mnist  # faster version
 
 
 class PerturbedFixedCorrecter(Corrector):

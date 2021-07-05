@@ -3,7 +3,7 @@ from cjax.continuation.states.state_variables import StateVariable, StateWriter
 from cjax.optimizer.optimizer import OptimizerCreator
 from cjax.continuation.methods.predictor.natural_predictor import NaturalPredictor
 from cjax.utils.data_img_gamma import mnist_gamma
-from cjax.utils.datasets import mnist, get_mnist_data, meta_mnist, get_preload_mnist_data
+from cjax.utils.dataset_conv import mnist
 from cjax.continuation.methods.corrector.unconstrained_corrector import (
     UnconstrainedCorrector,
 )
